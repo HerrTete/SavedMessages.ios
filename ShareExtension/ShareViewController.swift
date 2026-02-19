@@ -168,7 +168,7 @@ class ShareViewController: UIViewController {
         switch ext.lowercased() {
         case "jpg", "jpeg", "png", "gif", "heic", "heif", "bmp", "tiff", "webp": return "image"
         case "mp4", "mov", "avi", "mkv", "m4v": return "video"
-        case "mp3", "m4a", "aac", "wav", "flac", "ogg": return "audio"
+        case "mp3", "m4a", "aac", "wav", "flac", "ogg", "opus": return "audio"
         default: return "file"
         }
     }
