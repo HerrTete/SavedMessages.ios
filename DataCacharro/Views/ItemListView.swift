@@ -3,6 +3,8 @@ import SwiftUI
 struct ItemListView: View {
     @EnvironmentObject var storage: StorageService
     @State private var selectedItem: DataItem?
+    @State private var showingShareSheet = false
+    @State private var shareItems: [Any] = []
 
     var body: some View {
         List {
@@ -20,7 +22,7 @@ struct ItemListView: View {
                     }
                     .contextMenu {
                         Button {
-                            shareItem(item)
+                            prepareShare(item)
                         } label: {
                             Label("Share", systemImage: "square.and.arrow.up")
                         }
@@ -35,6 +37,9 @@ struct ItemListView: View {
         .sheet(item: $selectedItem) { item in
             ItemDetailView(item: item)
         }
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(items: shareItems)
+        }
         .overlay {
             if storage.items.isEmpty {
                 ContentUnavailableView(
@@ -46,19 +51,16 @@ struct ItemListView: View {
         }
     }
 
-    private func shareItem(_ item: DataItem) {
-        var activityItems: [Any] = []
+    private func prepareShare(_ item: DataItem) {
+        var items: [Any] = []
         if let text = item.textContent {
-            activityItems.append(text)
+            items.append(text)
         } else if let url = storage.fileURL(for: item) {
-            activityItems.append(url)
+            items.append(url)
         }
-        guard !activityItems.isEmpty else { return }
-        let vc = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first {
-            window.rootViewController?.present(vc, animated: true)
-        }
+        guard !items.isEmpty else { return }
+        shareItems = items
+        showingShareSheet = true
     }
 }
 

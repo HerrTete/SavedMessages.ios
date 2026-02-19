@@ -104,6 +104,8 @@ class StorageService: ObservableObject {
     }
 
     private func syncToiCloud() {
+        // One-way sync: copies local App Group files to iCloud Documents container.
+        // Does not handle conflict resolution or syncing from iCloud to local.
         DispatchQueue.global(qos: .background).async {
             guard let iCloudURL = self.iCloudURL else { return }
             try? FileManager.default.createDirectory(at: iCloudURL, withIntermediateDirectories: true)
