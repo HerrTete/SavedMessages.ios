@@ -18,32 +18,33 @@ struct ItemListView: View {
 
     var body: some View {
         List {
-            ForEach(groupedItems, id: \.key) { group in
-                Section(header: Text(group.key, formatter: Self.sectionDateFormatter)) {
-                    ForEach(group.items) { item in
-                        ItemRowView(item: item)
-                            .onTapGesture {
-                                selectedItem = item
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    storage.deleteItem(item)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                            .contextMenu {
-                                Button {
-                                    prepareShare(item)
-                                } label: {
-                                    Label("Share", systemImage: "square.and.arrow.up")
-                                }
-                                Button(role: .destructive) {
-                                    storage.deleteItem(item)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
+            ForEach(storage.items) { item in
+                ItemRowView(item: item)
+                    .onTapGesture {
+                        if let url = item.url {
+                            UIApplication.shared.open(url)
+                        } else {
+                            selectedItem = item
+                        }
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            storage.deleteItem(item)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .contextMenu {
+                        Button {
+                            prepareShare(item)
+                        } label: {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        Button(role: .destructive) {
+                            storage.deleteItem(item)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     }
                 }
             }
@@ -109,7 +110,7 @@ struct ItemRowView: View {
     private var itemIcon: some View {
         switch item.type {
         case .text:
-            Image(systemName: "text.quote")
+            Image(systemName: item.url != nil ? "link" : "text.quote")
                 .font(.title2)
                 .foregroundStyle(.blue)
         case .image:
