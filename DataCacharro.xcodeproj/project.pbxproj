@@ -173,6 +173,7 @@
 			dependencies = (
 				D1A2B3C4D5E6F7A8B9C0D1E2 /* PBXTargetDependency */,
 			);
+			name = DataCacharro;
 			productName = DataCacharro;
 			productReference = 300352E8836048DD868F5AA5;
 			productType = "com.apple.product-type.application";
@@ -397,7 +398,7 @@
 				CODE_SIGN_ENTITLEMENTS = DataCacharro/DataCacharro.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_ASSET_PATHS = "\"DataCacharro/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = DataCacharro/Info.plist;
@@ -420,7 +421,7 @@
 				CODE_SIGN_ENTITLEMENTS = DataCacharro/DataCacharro.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_ASSET_PATHS = "\"DataCacharro/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = DataCacharro/Info.plist;
