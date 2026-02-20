@@ -6,6 +6,16 @@ struct ItemListView: View {
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
 
+    private var groupedItems: [(key: Date, items: [DataItem])] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: storage.items) { item in
+            calendar.startOfDay(for: item.createdDate)
+        }
+        return grouped
+            .sorted { $0.key > $1.key }
+            .map { (key: $0.key, items: $0.value.sorted { $0.createdAt > $1.createdAt }) }
+    }
+
     var body: some View {
         List {
             ForEach(storage.items) { item in
@@ -36,6 +46,7 @@ struct ItemListView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
+                }
             }
         }
         .sheet(item: $selectedItem) { item in
@@ -66,6 +77,13 @@ struct ItemListView: View {
         shareItems = items
         showingShareSheet = true
     }
+
+    private static let sectionDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter
+    }()
 }
 
 struct ItemRowView: View {
