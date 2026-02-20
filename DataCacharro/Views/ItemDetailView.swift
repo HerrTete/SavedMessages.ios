@@ -17,9 +17,20 @@ struct ItemDetailView: View {
                 switch item.type {
                 case .text:
                     ScrollView {
-                        Text(item.textContent ?? "")
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text(item.textContent ?? "")
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            if let url = item.url {
+                                Button {
+                                    UIApplication.shared.open(url)
+                                } label: {
+                                    Label("Open in Browser", systemImage: "safari")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .padding(.horizontal)
+                            }
+                        }
                     }
                 case .image:
                     ImageDetailView(item: item)

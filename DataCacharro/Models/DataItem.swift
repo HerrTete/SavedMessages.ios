@@ -28,4 +28,13 @@ struct DataItem: Identifiable, Codable {
     }
 
     var createdDate: Date { Date(timeIntervalSince1970: createdAt) }
+
+    var url: URL? {
+        guard type == .text, let text = textContent,
+              let url = URL(string: text),
+              let scheme = url.scheme,
+              (scheme == "http" || scheme == "https"),
+              let host = url.host(percentEncoded: false), !host.isEmpty else { return nil }
+        return url
+    }
 }

@@ -11,7 +11,11 @@ struct ItemListView: View {
             ForEach(storage.items) { item in
                 ItemRowView(item: item)
                     .onTapGesture {
-                        selectedItem = item
+                        if let url = item.url {
+                            UIApplication.shared.open(url)
+                        } else {
+                            selectedItem = item
+                        }
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
@@ -88,7 +92,7 @@ struct ItemRowView: View {
     private var itemIcon: some View {
         switch item.type {
         case .text:
-            Image(systemName: "text.quote")
+            Image(systemName: item.url != nil ? "link" : "text.quote")
                 .font(.title2)
                 .foregroundStyle(.blue)
         case .image:
