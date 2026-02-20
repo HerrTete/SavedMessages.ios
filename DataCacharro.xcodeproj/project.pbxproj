@@ -397,7 +397,6 @@
 				CODE_SIGN_ENTITLEMENTS = DataCacharro/DataCacharro.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = DataCacharro/Info.plist;
@@ -420,7 +419,6 @@
 				CODE_SIGN_ENTITLEMENTS = DataCacharro/DataCacharro.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = DataCacharro/Info.plist;
