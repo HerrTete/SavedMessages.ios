@@ -75,12 +75,10 @@ struct ImageDetailView: View {
 
     var body: some View {
         if let url = storage.fileURL(for: item), let image = UIImage(contentsOfFile: url.path) {
-            ScrollView([.horizontal, .vertical]) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ContentUnavailableView("Image not found", systemImage: "photo.slash")
         }
