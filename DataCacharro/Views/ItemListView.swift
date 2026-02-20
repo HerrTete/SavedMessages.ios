@@ -75,7 +75,7 @@ struct ItemRowView: View {
                 Text(item.title)
                     .lineLimit(2)
                     .font(.body)
-                Text(item.createdDate, style: .relative)
+                Text(item.createdDate, format: .dateTime)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
