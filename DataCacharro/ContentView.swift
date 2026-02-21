@@ -11,13 +11,17 @@ struct ContentView: View {
             ItemListView()
                 .navigationTitle("DataCacharro")
                 .toolbar {
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showingAddAudio = true }) {
                             Image(systemName: "mic.badge.plus")
                         }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showingAddPhotoVideo = true }) {
                             Image(systemName: "photo.badge.plus")
                         }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showingAddText = true }) {
                             Image(systemName: "text.badge.plus")
                         }
