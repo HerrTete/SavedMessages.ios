@@ -80,9 +80,11 @@ class ShareViewController: UIViewController {
     private func saveTextItem(text: String) {
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else { return }
         var items = loadItems(from: containerURL)
+        let defaultTag = isURLString(text) ? "URL" : "Text"
         let newItem = SharedDataItem(
             id: UUID().uuidString, type: "text",
-            title: String(text.prefix(50)), textContent: text,
+            title: String(text.prefix(50)), tags: [defaultTag],
+            textContent: text,
             fileName: nil, mimeType: nil,
             createdAt: Date().timeIntervalSince1970)
         items.insert(newItem, at: 0)
@@ -115,6 +117,7 @@ class ShareViewController: UIViewController {
         var items = loadItems(from: containerURL)
         let newItem = SharedDataItem(
             id: UUID().uuidString, type: type, title: origName,
+            tags: [defaultTag(for: type)],
             textContent: nil, fileName: uniqueName, mimeType: mimeType,
             createdAt: Date().timeIntervalSince1970)
         items.insert(newItem, at: 0)
@@ -135,6 +138,7 @@ class ShareViewController: UIViewController {
         var items = loadItems(from: containerURL)
         let newItem = SharedDataItem(
             id: UUID().uuidString, type: type, title: name,
+            tags: [defaultTag(for: type)],
             textContent: nil, fileName: uniqueName, mimeType: mimeType,
             createdAt: Date().timeIntervalSince1970)
         items.insert(newItem, at: 0)
@@ -151,6 +155,24 @@ class ShareViewController: UIViewController {
         let url = containerURL.appendingPathComponent("items.json")
         if let data = try? JSONEncoder().encode(items) {
             try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    private func isURLString(_ text: String) -> Bool {
+        guard let url = URL(string: text),
+              let scheme = url.scheme,
+              (scheme == "http" || scheme == "https"),
+              let host = url.host(percentEncoded: false), !host.isEmpty else { return false }
+        return true
+    }
+
+    private func defaultTag(for type: String) -> String {
+        switch type {
+        case "audio": return "Audio"
+        case "image": return "Foto"
+        case "video": return "Video"
+        case "text": return "Text"
+        default: return "Datei"
         }
     }
 
@@ -182,6 +204,7 @@ struct SharedDataItem: Codable {
     var id: String
     var type: String
     var title: String
+    var tags: [String]
     var textContent: String?
     var fileName: String?
     var mimeType: String?

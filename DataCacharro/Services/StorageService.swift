@@ -54,7 +54,8 @@ class StorageService: ObservableObject {
     }
 
     func addTextItem(text: String, sourceApp: String? = nil) {
-        let item = DataItem(type: .text, title: String(text.prefix(50)), textContent: text, sourceApp: sourceApp)
+        let defaultTag = isURLString(text) ? "URL" : "Text"
+        let item = DataItem(type: .text, title: String(text.prefix(50)), tags: [defaultTag], textContent: text, sourceApp: sourceApp)
         items.insert(item, at: 0)
         saveItems()
     }
@@ -71,7 +72,7 @@ class StorageService: ObservableObject {
             return nil
         }
         let type = dataItemType(forMimeType: mimeType, fileName: fileName)
-        let item = DataItem(type: type, title: fileName, fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
+        let item = DataItem(type: type, title: fileName, tags: [defaultTag(for: type)], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
         items.insert(item, at: 0)
         saveItems()
         return item
@@ -98,6 +99,24 @@ class StorageService: ObservableObject {
         }
         items.removeAll { $0.id == item.id }
         saveItems()
+    }
+
+    private func isURLString(_ text: String) -> Bool {
+        guard let url = URL(string: text),
+              let scheme = url.scheme,
+              (scheme == "http" || scheme == "https"),
+              let host = url.host(percentEncoded: false), !host.isEmpty else { return false }
+        return true
+    }
+
+    private func defaultTag(for type: DataItemType) -> String {
+        switch type {
+        case .audio: return "Audio"
+        case .image: return "Foto"
+        case .video: return "Video"
+        case .text: return "Text"
+        case .file: return "Datei"
+        }
     }
 
     private func dataItemType(forMimeType mimeType: String, fileName: String) -> DataItemType {
