@@ -90,6 +90,16 @@ class StorageService: ObservableObject {
         saveItems()
     }
 
+    func updateItem(_ item: DataItem) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index] = item
+        saveItems()
+    }
+
+    var allTags: [String] {
+        Array(Set(items.flatMap { $0.tags })).sorted()
+    }
+
     private func dataItemType(forMimeType mimeType: String, fileName: String) -> DataItemType {
         if mimeType.hasPrefix("image/") { return .image }
         if mimeType.hasPrefix("video/") { return .video }

@@ -2,23 +2,21 @@ import SwiftUI
 
 struct ItemListView: View {
     @EnvironmentObject var storage: StorageService
+    var filterTag: String? = nil
     @State private var selectedItem: DataItem?
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
 
-    private var groupedItems: [(key: Date, items: [DataItem])] {
-        let calendar = Calendar.current
-        let grouped = Dictionary(grouping: storage.items) { item in
-            calendar.startOfDay(for: item.createdDate)
+    private var displayedItems: [DataItem] {
+        if let tag = filterTag {
+            return storage.items.filter { $0.tags.contains(tag) }
         }
-        return grouped
-            .sorted { $0.key > $1.key }
-            .map { (key: $0.key, items: $0.value.sorted { $0.createdAt > $1.createdAt }) }
+        return storage.items
     }
 
     var body: some View {
         List {
-            ForEach(storage.items) { item in
+            ForEach(displayedItems) { item in
                 ItemRowView(item: item)
                     .onTapGesture {
                         if let url = item.url {
@@ -55,11 +53,11 @@ struct ItemListView: View {
             ShareSheet(items: shareItems)
         }
         .overlay {
-            if storage.items.isEmpty {
+            if displayedItems.isEmpty {
                 ContentUnavailableView(
-                    "No Items",
+                    filterTag != nil ? "No Items with this Tag" : "No Items",
                     systemImage: "tray",
-                    description: Text("Share content from other apps or tap + to add text.")
+                    description: Text(filterTag != nil ? "No items are tagged with \"\(filterTag!)\"." : "Share content from other apps or tap + to add text.")
                 )
             }
         }
@@ -93,9 +91,24 @@ struct ItemRowView: View {
             itemIcon
                 .frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
+                Text(item.displayName)
                     .lineLimit(2)
                     .font(.body)
+                if !item.tags.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(item.tags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.accentColor.opacity(0.15))
+                                    .foregroundStyle(.accentColor)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
                 Text(item.createdDate, format: .dateTime)
                     .font(.caption)
                     .foregroundStyle(.secondary)
