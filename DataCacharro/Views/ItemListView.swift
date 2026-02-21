@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct ItemListView: View {
     @EnvironmentObject var storage: StorageService
@@ -95,6 +96,7 @@ struct ItemListView: View {
 
 struct ItemRowView: View {
     let item: DataItem
+    @EnvironmentObject var storage: StorageService
 
     var body: some View {
         HStack(spacing: 12) {
@@ -136,13 +138,9 @@ struct ItemRowView: View {
                 .font(.title2)
                 .foregroundStyle(.blue)
         case .image:
-            Image(systemName: "photo")
-                .font(.title2)
-                .foregroundStyle(.green)
+            ThumbnailView(item: item)
         case .video:
-            Image(systemName: "video")
-                .font(.title2)
-                .foregroundStyle(.orange)
+            ThumbnailView(item: item)
         case .audio:
             Image(systemName: "waveform")
                 .font(.title2)
@@ -151,6 +149,75 @@ struct ItemRowView: View {
             Image(systemName: "doc")
                 .font(.title2)
                 .foregroundStyle(.gray)
+        }
+    }
+}
+
+struct ThumbnailView: View {
+    let item: DataItem
+    @EnvironmentObject var storage: StorageService
+    @State private var thumbnail: UIImage?
+
+    private static let cache = NSCache<NSString, UIImage>()
+
+    var body: some View {
+        Group {
+            if let thumbnail = thumbnail {
+                Image(uiImage: thumbnail)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+            } else {
+                placeholder
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .task { await loadThumbnail() }
+    }
+
+    @ViewBuilder
+    private var placeholder: some View {
+        switch item.type {
+        case .image:
+            Image(systemName: "photo")
+                .font(.title2)
+                .foregroundStyle(.green)
+        case .video:
+            Image(systemName: "video")
+                .font(.title2)
+                .foregroundStyle(.orange)
+        default:
+            EmptyView()
+        }
+    }
+
+    private func loadThumbnail() async {
+        let cacheKey = item.id as NSString
+        if let cached = ThumbnailView.cache.object(forKey: cacheKey) {
+            thumbnail = cached
+            return
+        }
+        guard let url = storage.fileURL(for: item) else { return }
+        let loaded: UIImage?
+        switch item.type {
+        case .image:
+            loaded = await Task.detached(priority: .userInitiated) {
+                UIImage(contentsOfFile: url.path)?.preparingThumbnail(of: CGSize(width: 72, height: 72))
+            }.value
+        case .video:
+            loaded = await Task.detached(priority: .userInitiated) {
+                let asset = AVAsset(url: url)
+                let generator = AVAssetImageGenerator(asset: asset)
+                generator.appliesPreferredTrackTransform = true
+                generator.maximumSize = CGSize(width: 72, height: 72)
+                return (try? generator.copyCGImage(at: CMTime.zero, actualTime: nil)).map { UIImage(cgImage: $0) }
+            }.value
+        default:
+            return
+        }
+        if let loaded {
+            ThumbnailView.cache.setObject(loaded, forKey: cacheKey)
+            thumbnail = loaded
         }
     }
 }
