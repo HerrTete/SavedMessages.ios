@@ -10,10 +10,30 @@ struct AddPhotoVideoView: View {
     @State private var isProcessing = false
     @State private var loadFailedCount = 0
     @State private var showingLoadError = false
+    @State private var showingCamera = false
+    @State private var didCapture = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                Button {
+                    showingCamera = true
+                } label: {
+                    VStack(spacing: 16) {
+                        Image(systemName: "camera.circle")
+                            .font(.system(size: 64))
+                            .foregroundStyle(.blue)
+                        Text("Take Photo or Video")
+                            .font(.title3)
+                        Text("Capture with your camera")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+
+                Divider()
+
                 PhotosPicker(
                     selection: $selectedItems,
                     maxSelectionCount: 10,
@@ -60,6 +80,18 @@ struct AddPhotoVideoView: View {
                         Task { await saveSelectedItems() }
                     }
                     .disabled(selectedItems.isEmpty || isProcessing)
+                }
+            }
+            .fullScreenCover(isPresented: $showingCamera) {
+                CameraPickerView { data, name, mimeType in
+                    storage.addFileItem(data: data, fileName: name, mimeType: mimeType)
+                    didCapture = true
+                }
+                .ignoresSafeArea()
+            }
+            .onChange(of: showingCamera) { isShowing in
+                if !isShowing && didCapture {
+                    dismiss()
                 }
             }
         }

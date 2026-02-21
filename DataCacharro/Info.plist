@@ -43,6 +43,8 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>NSCameraUsageDescription</key>
+    <string>DataCacharro needs camera access to capture photos and videos.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>DataCacharro needs microphone access to record audio clips.</string>
     <key>NSPhotoLibraryUsageDescription</key>
