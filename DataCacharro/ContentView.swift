@@ -7,35 +7,48 @@ struct ContentView: View {
     @State private var showingAddPhotoVideo = false
 
     var body: some View {
-        NavigationStack {
-            ItemListView()
-                .navigationTitle("DataCacharro")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: { showingAddAudio = true }) {
-                            Image(systemName: "mic.badge.plus")
+        TabView {
+            NavigationStack {
+                ItemListView()
+                    .navigationTitle("DataCacharro")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: { showingAddAudio = true }) {
+                                Image(systemName: "mic.badge.plus")
+                            }
+                        }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: { showingAddPhotoVideo = true }) {
+                                Image(systemName: "photo.badge.plus")
+                            }
+                        }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: { showingAddText = true }) {
+                                Image(systemName: "text.badge.plus")
+                            }
                         }
                     }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: { showingAddPhotoVideo = true }) {
-                            Image(systemName: "photo.badge.plus")
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: { showingAddText = true }) {
-                            Image(systemName: "text.badge.plus")
-                        }
-                    }
-                }
-        }
-        .sheet(isPresented: $showingAddText) {
-            AddTextView()
-        }
-        .sheet(isPresented: $showingAddAudio) {
-            AddAudioView()
-        }
-        .sheet(isPresented: $showingAddPhotoVideo) {
-            AddPhotoVideoView()
+            }
+            .sheet(isPresented: $showingAddText) {
+                AddTextView()
+            }
+            .sheet(isPresented: $showingAddAudio) {
+                AddAudioView()
+            }
+            .sheet(isPresented: $showingAddPhotoVideo) {
+                AddPhotoVideoView()
+            }
+            .tabItem {
+                Label("Items", systemImage: "list.bullet")
+            }
+
+            NavigationStack {
+                TagsView()
+                    .navigationTitle("Tags")
+            }
+            .tabItem {
+                Label("Tags", systemImage: "tag")
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             storage.loadItems()

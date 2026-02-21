@@ -10,18 +10,23 @@ struct ItemDetailView: View {
     @State private var shareItems: [Any] = []
     @State private var showingQuickLook = false
     @State private var quickLookURL: URL?
+    @State private var showingEdit = false
+
+    var currentItem: DataItem {
+        storage.items.first(where: { $0.id == item.id }) ?? item
+    }
 
     var body: some View {
         NavigationStack {
             Group {
-                switch item.type {
+                switch currentItem.type {
                 case .text:
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text(item.textContent ?? "")
+                            Text(currentItem.textContent ?? "")
                                 .padding()
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            if let url = item.url {
+                            if let url = currentItem.url {
                                 Button {
                                     UIApplication.shared.open(url)
                                 } label: {
@@ -33,23 +38,28 @@ struct ItemDetailView: View {
                         }
                     }
                 case .image:
-                    ImageDetailView(item: item)
+                    ImageDetailView(item: currentItem)
                 case .video:
-                    VideoDetailView(item: item)
+                    VideoDetailView(item: currentItem)
                 case .audio:
-                    AudioDetailView(item: item)
+                    AudioDetailView(item: currentItem)
                 case .file:
-                    FileDetailView(item: item) { url in
+                    FileDetailView(item: currentItem) { url in
                         quickLookURL = url
                         showingQuickLook = true
                     }
                 }
             }
-            .navigationTitle(item.title)
+            .navigationTitle(currentItem.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingEdit = true }) {
+                        Image(systemName: "pencil")
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: share) {
@@ -66,17 +76,121 @@ struct ItemDetailView: View {
                 QuickLookView(url: url)
             }
         }
+        .sheet(isPresented: $showingEdit) {
+            EditItemView(item: currentItem)
+        }
     }
 
     private func share() {
         var items: [Any] = []
-        if let text = item.textContent {
+        if let text = currentItem.textContent {
             items.append(text)
-        } else if let url = storage.fileURL(for: item) {
+        } else if let url = storage.fileURL(for: currentItem) {
             items.append(url)
         }
         shareItems = items
         showingShareSheet = true
+    }
+}
+
+struct EditItemView: View {
+    let item: DataItem
+    @EnvironmentObject var storage: StorageService
+    @Environment(\.dismiss) var dismiss
+    @State private var customName: String
+    @State private var tags: [String]
+    @State private var tagInput = ""
+
+    private var suggestions: [String] {
+        let existing = storage.allTags
+        let query = tagInput.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !query.isEmpty else { return [] }
+        return existing.filter { $0.lowercased().hasPrefix(query) && !tags.contains($0) }
+    }
+
+    init(item: DataItem) {
+        self.item = item
+        _customName = State(initialValue: item.customName ?? "")
+        _tags = State(initialValue: item.tags)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Name") {
+                    TextField(item.title, text: $customName)
+                        .autocorrectionDisabled()
+                }
+
+                Section("Tags") {
+                    if !tags.isEmpty {
+                        ForEach(tags, id: \.self) { tag in
+                            HStack {
+                                Label(tag, systemImage: "tag")
+                                Spacer()
+                                Button {
+                                    tags.removeAll { $0 == tag }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    HStack {
+                        TextField("Add tag…", text: $tagInput)
+                            .autocorrectionDisabled()
+                            .autocapitalization(.none)
+                            .onSubmit { addTagFromInput() }
+                        if !tagInput.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Button(action: addTagFromInput) {
+                                Image(systemName: "plus.circle.fill")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if !suggestions.isEmpty {
+                        ForEach(suggestions, id: \.self) { suggestion in
+                            Button {
+                                guard !tags.contains(suggestion) else { return }
+                                tags.append(suggestion)
+                                tagInput = ""
+                            } label: {
+                                Label(suggestion, systemImage: "tag")
+                                    .foregroundStyle(.primary)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Edit")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        let trimmed = customName.trimmingCharacters(in: .whitespaces)
+                        var updated = item
+                        updated.customName = trimmed.isEmpty ? nil : trimmed
+                        updated.tags = tags
+                        storage.updateItem(updated)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func addTagFromInput() {
+        let tag = tagInput.trimmingCharacters(in: .whitespaces)
+        guard !tag.isEmpty, !tags.contains(tag) else { return }
+        tags.append(tag)
+        tagInput = ""
     }
 }
 
