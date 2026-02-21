@@ -38,6 +38,8 @@ class ShareViewController: UIViewController {
             provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { item, _ in
                 if let text = item as? String {
                     self.saveTextItem(text: text)
+                } else if let url = item as? URL {
+                    self.saveTextItem(text: url.absoluteString)
                 } else if let data = item as? Data, let text = String(data: data, encoding: .utf8) {
                     self.saveTextItem(text: text)
                 }
@@ -66,7 +68,8 @@ class ShareViewController: UIViewController {
                             self.saveFileItem(url: url)
                         } else if let data = item as? Data {
                             let name = provider.suggestedName ?? "file"
-                            self.saveDataItem(data: data, name: name, mimeType: typeID)
+                            let mimeType = UTType(typeID)?.preferredMIMEType ?? "application/octet-stream"
+                            self.saveDataItem(data: data, name: name, mimeType: mimeType)
                         }
                         completion()
                     }

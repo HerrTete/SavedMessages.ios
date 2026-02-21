@@ -50,7 +50,7 @@ struct ContentView: View {
                 Label("Tags", systemImage: "tag")
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: UIScene.willEnterForegroundNotification)) { _ in
             storage.loadItems()
         }
     }
