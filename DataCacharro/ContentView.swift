@@ -3,13 +3,21 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var storage: StorageService
     @State private var showingAddText = false
+    @State private var showingAddAudio = false
+    @State private var showingAddPhotoVideo = false
 
     var body: some View {
         NavigationStack {
             ItemListView()
                 .navigationTitle("DataCacharro")
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                    ToolbarItemGroup(placement: .navigationBarTrailing) {
+                        Button(action: { showingAddAudio = true }) {
+                            Image(systemName: "mic.badge.plus")
+                        }
+                        Button(action: { showingAddPhotoVideo = true }) {
+                            Image(systemName: "photo.badge.plus")
+                        }
                         Button(action: { showingAddText = true }) {
                             Image(systemName: "text.badge.plus")
                         }
@@ -18,6 +26,12 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingAddText) {
             AddTextView()
+        }
+        .sheet(isPresented: $showingAddAudio) {
+            AddAudioView()
+        }
+        .sheet(isPresented: $showingAddPhotoVideo) {
+            AddPhotoVideoView()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             storage.loadItems()
