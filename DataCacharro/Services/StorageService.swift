@@ -82,6 +82,16 @@ class StorageService: ObservableObject {
         return filesURL.appendingPathComponent(fileName)
     }
 
+    func updateItem(_ item: DataItem) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index] = item
+        saveItems()
+    }
+
+    var allTags: [String] {
+        Array(Set(items.flatMap { $0.tags })).sorted()
+    }
+
     func deleteItem(_ item: DataItem) {
         if let fileName = item.fileName, let filesURL = filesURL {
             try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
