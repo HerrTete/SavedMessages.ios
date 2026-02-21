@@ -4,6 +4,7 @@ struct ItemListView: View {
     @EnvironmentObject var storage: StorageService
     var filterTag: String? = nil
     @State private var selectedItem: DataItem?
+    @State private var tagItem: DataItem?
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
 
@@ -25,6 +26,14 @@ struct ItemListView: View {
                             selectedItem = item
                         }
                     }
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        Button {
+                            tagItem = item
+                        } label: {
+                            Label("Tags", systemImage: "tag")
+                        }
+                        .tint(.blue)
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             storage.deleteItem(item)
@@ -33,6 +42,11 @@ struct ItemListView: View {
                         }
                     }
                     .contextMenu {
+                        Button {
+                            tagItem = item
+                        } label: {
+                            Label("Manage Tags", systemImage: "tag")
+                        }
                         Button {
                             prepareShare(item)
                         } label: {
@@ -48,6 +62,9 @@ struct ItemListView: View {
         }
         .sheet(item: $selectedItem) { item in
             ItemDetailView(item: item)
+        }
+        .sheet(item: $tagItem) { item in
+            QuickTagView(item: item)
         }
         .sheet(isPresented: $showingShareSheet) {
             ShareSheet(items: shareItems)

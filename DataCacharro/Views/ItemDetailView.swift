@@ -300,6 +300,161 @@ struct FileDetailView: View {
     }
 }
 
+struct QuickTagView: View {
+    let item: DataItem
+    @EnvironmentObject var storage: StorageService
+    @Environment(\.dismiss) var dismiss
+    @State private var tags: [String]
+    @State private var tagInput = ""
+
+    private var suggestions: [String] {
+        let query = tagInput.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !query.isEmpty else { return [] }
+        return storage.allTags.filter { $0.lowercased().hasPrefix(query) && !tags.contains($0) }
+    }
+
+    init(item: DataItem) {
+        self.item = item
+        _tags = State(initialValue: item.tags)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                if !storage.allTags.isEmpty {
+                    ScrollView {
+                        FlowLayout(spacing: 8) {
+                            ForEach(storage.allTags, id: \.self) { tag in
+                                let selected = tags.contains(tag)
+                                Button {
+                                    if selected {
+                                        tags.removeAll { $0 == tag }
+                                    } else {
+                                        tags.append(tag)
+                                    }
+                                } label: {
+                                    Label(tag, systemImage: selected ? "checkmark" : "tag")
+                                        .font(.subheadline)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(selected ? Color.accentColor : Color.accentColor.opacity(0.12))
+                                        .foregroundStyle(selected ? Color.white : Color.accentColor)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+
+                HStack {
+                    TextField("New tag…", text: $tagInput)
+                        .autocorrectionDisabled()
+                        .autocapitalization(.none)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { addTagFromInput() }
+                    if !tagInput.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Button(action: addTagFromInput) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+
+                if !suggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(suggestions, id: \.self) { suggestion in
+                            Button {
+                                tags.append(suggestion)
+                                tagInput = ""
+                            } label: {
+                                Label(suggestion, systemImage: "tag")
+                                    .foregroundStyle(.primary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 8)
+                            }
+                            Divider().padding(.leading)
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.top, 12)
+            .navigationTitle("Tags")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        var updated = item
+                        updated.tags = tags
+                        storage.updateItem(updated)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    private func addTagFromInput() {
+        let tag = tagInput.trimmingCharacters(in: .whitespaces)
+        guard !tag.isEmpty, !tags.contains(tag) else { return }
+        tags.append(tag)
+        tagInput = ""
+    }
+}
+
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        let rowHeights = rows.map { row in row.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0 }
+        let totalSpacing = CGFloat(max(rowHeights.count - 1, 0)) * spacing
+        let height = rowHeights.reduce(0, +) + totalSpacing
+        return CGSize(width: proposal.width ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        var y = bounds.minY
+        for row in rows {
+            var x = bounds.minX
+            let rowHeight = row.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0
+            for subview in row {
+                let size = subview.sizeThatFits(.unspecified)
+                subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += rowHeight + spacing
+        }
+    }
+
+    private func computeRows(proposal: ProposedViewSize, subviews: Subviews) -> [[LayoutSubview]] {
+        let maxWidth = proposal.width ?? .infinity
+        var rows: [[LayoutSubview]] = [[]]
+        var currentWidth: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if currentWidth + size.width > maxWidth, !(rows.last?.isEmpty ?? true) {
+                rows.append([])
+                currentWidth = 0
+            }
+            rows[rows.count - 1].append(subview)
+            currentWidth += size.width + spacing
+        }
+        return rows
+    }
+}
+
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
 
