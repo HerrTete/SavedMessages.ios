@@ -46,7 +46,6 @@ struct ItemListView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
-                }
             }
         }
         .sheet(item: $selectedItem) { item in
