@@ -6,8 +6,8 @@ class StorageService: ObservableObject {
 
     @Published var items: [DataItem] = []
 
-    private let appGroupID = "group.com.HerrTete.DataCacharro"
-    private let iCloudContainerID = "iCloud.com.HerrTete.DataCacharro"
+    private let appGroupID = "group.com.HerrTete.SavedMessages"
+    private let iCloudContainerID = "iCloud.com.HerrTete.SavedMessages"
     private let itemsFileName = "items.json"
 
     private var appGroupURL: URL? {

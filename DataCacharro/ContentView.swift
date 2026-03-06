@@ -10,7 +10,7 @@ struct ContentView: View {
         TabView {
             NavigationStack {
                 ItemListView()
-                    .navigationTitle("DataCacharro")
+                    .navigationTitle("SavedMessages")
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button(action: { showingAddAudio = true }) {
