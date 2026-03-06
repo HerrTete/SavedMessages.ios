@@ -19,7 +19,7 @@ jobs:
       - name: Build
         run: |
           xcodebuild -project DataCacharro.xcodeproj \
-            -scheme DataCacharro \
+            -scheme SavedMessages \
             -destination "generic/platform=iOS Simulator" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \

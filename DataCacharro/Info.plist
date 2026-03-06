@@ -44,11 +44,11 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>NSCameraUsageDescription</key>
-    <string>DataCacharro needs camera access to capture photos and videos.</string>
+    <string>SavedMessages needs camera access to capture photos and videos.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>DataCacharro needs microphone access to record audio clips.</string>
+    <string>SavedMessages needs microphone access to record audio clips.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>DataCacharro needs photo library access to import photos and videos.</string>
+    <string>SavedMessages needs photo library access to import photos and videos.</string>
     <key>UIFileSharingEnabled</key>
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>

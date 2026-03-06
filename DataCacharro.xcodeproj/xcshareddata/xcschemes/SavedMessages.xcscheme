@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "1E7B78848BB548158AD1F3F6"
-               BuildableName = "DataCacharro.app"
-               BlueprintName = "DataCacharro"
+               BuildableName = "SavedMessages.app"
+               BlueprintName = "SavedMessages"
                ReferencedContainer = "container:DataCacharro.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,8 +45,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1E7B78848BB548158AD1F3F6"
-            BuildableName = "DataCacharro.app"
-            BlueprintName = "DataCacharro"
+            BuildableName = "SavedMessages.app"
+            BlueprintName = "SavedMessages"
             ReferencedContainer = "container:DataCacharro.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,8 +62,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1E7B78848BB548158AD1F3F6"
-            BuildableName = "DataCacharro.app"
-            BlueprintName = "DataCacharro"
+            BuildableName = "SavedMessages.app"
+            BlueprintName = "SavedMessages"
             ReferencedContainer = "container:DataCacharro.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
