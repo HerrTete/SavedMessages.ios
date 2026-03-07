@@ -89,25 +89,24 @@ Die Share Extension nutzt denselben App-Group-Container (`group.com.HerrTete.Sav
 ## Projekt-Struktur
 
 ```
-DataCacharro.ios/
-├── Shared/                             ← Gemeinsamer Code (App + Extension)
-│   ├── DataItem.swift                  ← Datenmodell
-│   ├── StorageConstants.swift          ← Zentrale Konstanten & Pfade
-│   └── ItemTypeHelpers.swift           ← Typ-Erkennung & Standard-Tags
-├── DataCacharro/                       ← Haupt-App
-│   ├── SavedMessagesApp.swift          ← App-Einstiegspunkt
-│   ├── ContentView.swift               ← Tab-Ansicht (Items + Tags)
-│   ├── Services/
-│   │   └── StorageService.swift        ← Persistence-Layer (laden, speichern, iCloud-Sync)
-│   └── Views/
-│       ├── ItemListView.swift          ← Item-Liste mit Filter & Thumbnails
-│       ├── ItemDetailView.swift        ← Detail-, Bearbeitungs- & Quick-Tag-Ansichten
-│       ├── TagsView.swift              ← Tag-Übersicht mit Zählern
-│       ├── AddTextView.swift           ← Text/URL hinzufügen
-│       ├── AddAudioView.swift          ← Audio aufnehmen
-│       ├── AddPhotoVideoView.swift     ← Foto/Video hinzufügen
-│       └── CameraPickerView.swift      ← Kamera-Auswahl
-├── ShareExtension/                     ← Share Extension
-│   └── ShareViewController.swift       ← Verarbeitung geteilter Inhalte
-└── README.md
+Shared/                             ← Gemeinsamer Code (App + Extension)
+├── DataItem.swift                  ← Datenmodell
+├── StorageConstants.swift          ← Zentrale Konstanten & Pfade
+└── ItemTypeHelpers.swift           ← Typ-Erkennung & Standard-Tags
+DataCacharro/                       ← Haupt-App
+├── SavedMessagesApp.swift          ← App-Einstiegspunkt
+├── ContentView.swift               ← Tab-Ansicht (Items + Tags)
+├── Services/
+│   └── StorageService.swift        ← Persistence-Layer (laden, speichern, iCloud-Sync)
+└── Views/
+    ├── ItemListView.swift          ← Item-Liste mit Filter & Thumbnails
+    ├── ItemDetailView.swift        ← Detail-, Bearbeitungs- & Quick-Tag-Ansichten
+    ├── TagsView.swift              ← Tag-Übersicht mit Zählern
+    ├── AddTextView.swift           ← Text/URL hinzufügen
+    ├── AddAudioView.swift          ← Audio aufnehmen
+    ├── AddPhotoVideoView.swift     ← Foto/Video hinzufügen
+    └── CameraPickerView.swift      ← Kamera-Auswahl
+ShareExtension/                     ← Share Extension
+└── ShareViewController.swift       ← Verarbeitung geteilter Inhalte
+README.md
 ```
