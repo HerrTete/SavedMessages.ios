@@ -75,7 +75,9 @@ Dateiname-Schema: `{UUID}.{Erweiterung}` (z. B. `A1B2C3D4-E5F6-7890-ABCD-EF12345
 
 Die App führt eine **One-Way-Synchronisation** (lokal → iCloud) durch:
 - Nach jedem Speichervorgang wird `items.json` in den iCloud-Documents-Container kopiert
-- Neue Dateien im `Files/`-Ordner werden ebenfalls kopiert
+- Neue Dateien im `Files/`-Ordner werden ebenfalls in den iCloud-Container kopiert
+- Dateien werden dabei **nur hochgeladen, wenn sie im iCloud-Ziel noch nicht existieren** (keine Aktualisierung/Überschreibung bestehender Dateien)
+- In iCloud bereits vorhandene Dateien werden **nicht automatisch gelöscht**, auch wenn sie lokal entfernt wurden (kein vollständiges Spiegeln des lokalen Zustands)
 - Es gibt **keine Konflikterkennung** und keinen Rück-Sync von iCloud zum lokalen Speicher
 
 ### Share Extension
