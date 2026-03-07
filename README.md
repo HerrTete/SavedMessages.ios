@@ -42,7 +42,7 @@ Jeder gespeicherte Eintrag wird als `DataItem`-Struct in der Datei `items.json` 
 | `fileName`    | `String?`        | Dateiname im `Files/`-Ordner (UUID + Erweiterung)           |
 | `mimeType`    | `String?`        | MIME-Typ der Datei (z. B. `image/jpeg`)                     |
 | `createdAt`   | `TimeInterval`   | Erstellungszeitpunkt (Sekunden seit 1970)                   |
-| `sourceApp`   | `String?`        | Quell-App (bei Inhalten über die Share Extension)           |
+| `sourceApp`   | `String?`        | Quell-App (bei Inhalten über die Share Extension, optional, kann `nil` sein) |
 
 ### Tags
 
