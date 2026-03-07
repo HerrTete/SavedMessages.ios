@@ -3,8 +3,6 @@ import UniformTypeIdentifiers
 
 class ShareViewController: UIViewController {
 
-    private let appGroupID = "group.com.HerrTete.SavedMessages"
-
     override func viewDidLoad() {
         super.viewDidLoad()
         processSharedItems()
@@ -81,22 +79,17 @@ class ShareViewController: UIViewController {
     }
 
     private func saveTextItem(text: String) {
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else { return }
+        guard let containerURL = StorageConstants.appGroupURL else { return }
         var items = loadItems(from: containerURL)
-        let defaultTag = isURLString(text) ? "URL" : "Text"
-        let newItem = SharedDataItem(
-            id: UUID().uuidString, type: "text",
-            title: String(text.prefix(50)), tags: [defaultTag],
-            textContent: text,
-            fileName: nil, mimeType: nil,
-            createdAt: Date().timeIntervalSince1970)
+        let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
+        let newItem = DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text)
         items.insert(newItem, at: 0)
         saveItems(items, to: containerURL)
     }
 
     private func saveFileItem(url: URL) {
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else { return }
-        let filesDir = containerURL.appendingPathComponent("Files")
+        guard let containerURL = StorageConstants.appGroupURL else { return }
+        let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
 
         let origName = url.lastPathComponent
@@ -116,20 +109,16 @@ class ShareViewController: UIViewController {
         }
 
         let mimeType = mimeTypeForExtension(ext)
-        let type = itemType(forMimeType: mimeType, ext: ext)
+        let type = DataItemType(mimeType: mimeType, fileName: origName)
         var items = loadItems(from: containerURL)
-        let newItem = SharedDataItem(
-            id: UUID().uuidString, type: type, title: origName,
-            tags: [defaultTag(for: type)],
-            textContent: nil, fileName: uniqueName, mimeType: mimeType,
-            createdAt: Date().timeIntervalSince1970)
+        let newItem = DataItem(type: type, title: origName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
         items.insert(newItem, at: 0)
         saveItems(items, to: containerURL)
     }
 
     private func saveDataItem(data: Data, name: String, mimeType: String) {
-        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else { return }
-        let filesDir = containerURL.appendingPathComponent("Files")
+        guard let containerURL = StorageConstants.appGroupURL else { return }
+        let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
 
         let ext = URL(fileURLWithPath: name).pathExtension
@@ -137,45 +126,23 @@ class ShareViewController: UIViewController {
         let dest = filesDir.appendingPathComponent(uniqueName)
         try? data.write(to: dest)
 
-        let type = itemType(forMimeType: mimeType, ext: ext)
+        let type = DataItemType(mimeType: mimeType, fileName: name)
         var items = loadItems(from: containerURL)
-        let newItem = SharedDataItem(
-            id: UUID().uuidString, type: type, title: name,
-            tags: [defaultTag(for: type)],
-            textContent: nil, fileName: uniqueName, mimeType: mimeType,
-            createdAt: Date().timeIntervalSince1970)
+        let newItem = DataItem(type: type, title: name, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
         items.insert(newItem, at: 0)
         saveItems(items, to: containerURL)
     }
 
-    private func loadItems(from containerURL: URL) -> [SharedDataItem] {
-        let url = containerURL.appendingPathComponent("items.json")
+    private func loadItems(from containerURL: URL) -> [DataItem] {
+        let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
         guard let data = try? Data(contentsOf: url) else { return [] }
-        return (try? JSONDecoder().decode([SharedDataItem].self, from: data)) ?? []
+        return (try? JSONDecoder().decode([DataItem].self, from: data)) ?? []
     }
 
-    private func saveItems(_ items: [SharedDataItem], to containerURL: URL) {
-        let url = containerURL.appendingPathComponent("items.json")
+    private func saveItems(_ items: [DataItem], to containerURL: URL) {
+        let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
         if let data = try? JSONEncoder().encode(items) {
             try? data.write(to: url, options: .atomic)
-        }
-    }
-
-    private func isURLString(_ text: String) -> Bool {
-        guard let url = URL(string: text),
-              let scheme = url.scheme,
-              (scheme == "http" || scheme == "https"),
-              let host = url.host(percentEncoded: false), !host.isEmpty else { return false }
-        return true
-    }
-
-    private func defaultTag(for type: String) -> String {
-        switch type {
-        case "audio": return "Audio"
-        case "image": return "Foto"
-        case "video": return "Video"
-        case "text": return "Text"
-        default: return "Datei"
         }
     }
 
@@ -186,30 +153,7 @@ class ShareViewController: UIViewController {
         return "application/octet-stream"
     }
 
-    private func itemType(forMimeType mimeType: String, ext: String) -> String {
-        if mimeType.hasPrefix("image/") { return "image" }
-        if mimeType.hasPrefix("video/") { return "video" }
-        if mimeType.hasPrefix("audio/") { return "audio" }
-        switch ext.lowercased() {
-        case "jpg", "jpeg", "png", "gif", "heic", "heif", "bmp", "tiff", "webp": return "image"
-        case "mp4", "mov", "avi", "mkv", "m4v": return "video"
-        case "mp3", "m4a", "aac", "wav", "flac", "ogg", "opus": return "audio"
-        default: return "file"
-        }
-    }
-
     private func completeRequest() {
         extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
     }
-}
-
-struct SharedDataItem: Codable {
-    var id: String
-    var type: String
-    var title: String
-    var tags: [String]
-    var textContent: String?
-    var fileName: String?
-    var mimeType: String?
-    var createdAt: TimeInterval
 }
