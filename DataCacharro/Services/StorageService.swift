@@ -6,24 +6,8 @@ class StorageService: ObservableObject {
 
     @Published var items: [DataItem] = []
 
-    private let appGroupID = "group.com.HerrTete.SavedMessages"
-    private let iCloudContainerID = "iCloud.com.HerrTete.SavedMessages"
-    private let itemsFileName = "items.json"
-
-    private var appGroupURL: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
-    }
-
-    private var filesURL: URL? {
-        appGroupURL?.appendingPathComponent("Files", isDirectory: true)
-    }
-
-    private var itemsFileURL: URL? {
-        appGroupURL?.appendingPathComponent(itemsFileName)
-    }
-
     private var iCloudURL: URL? {
-        FileManager.default.url(forUbiquityContainerIdentifier: iCloudContainerID)?
+        FileManager.default.url(forUbiquityContainerIdentifier: StorageConstants.iCloudContainerID)?
             .appendingPathComponent("Documents")
     }
 
@@ -33,12 +17,12 @@ class StorageService: ObservableObject {
     }
 
     private func setupDirectories() {
-        guard let filesURL = filesURL else { return }
+        guard let filesURL = StorageConstants.filesURL else { return }
         try? FileManager.default.createDirectory(at: filesURL, withIntermediateDirectories: true)
     }
 
     func loadItems() {
-        guard let url = itemsFileURL, let data = try? Data(contentsOf: url) else { return }
+        guard let url = StorageConstants.itemsFileURL, let data = try? Data(contentsOf: url) else { return }
         if let loaded = try? JSONDecoder().decode([DataItem].self, from: data) {
             DispatchQueue.main.async {
                 self.items = loaded.sorted { $0.createdAt > $1.createdAt }
@@ -47,22 +31,22 @@ class StorageService: ObservableObject {
     }
 
     func saveItems() {
-        guard let url = itemsFileURL else { return }
+        guard let url = StorageConstants.itemsFileURL else { return }
         guard let data = try? JSONEncoder().encode(items) else { return }
         try? data.write(to: url, options: .atomic)
         syncToiCloud()
     }
 
     func addTextItem(text: String, sourceApp: String? = nil) {
-        let defaultTag = isURLString(text) ? "URL" : "Text"
-        let item = DataItem(type: .text, title: String(text.prefix(50)), tags: [defaultTag], textContent: text, sourceApp: sourceApp)
+        let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
+        let item = DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text, sourceApp: sourceApp)
         items.insert(item, at: 0)
         saveItems()
     }
 
     @discardableResult
     func addFileItem(data: Data, fileName: String, mimeType: String, sourceApp: String? = nil) -> DataItem? {
-        guard let filesURL = filesURL else { return nil }
+        guard let filesURL = StorageConstants.filesURL else { return nil }
         let ext = URL(fileURLWithPath: fileName).pathExtension
         let uniqueName = UUID().uuidString + (ext.isEmpty ? "" : ".\(ext)")
         let fileURL = filesURL.appendingPathComponent(uniqueName)
@@ -71,15 +55,15 @@ class StorageService: ObservableObject {
         } catch {
             return nil
         }
-        let type = dataItemType(forMimeType: mimeType, fileName: fileName)
-        let item = DataItem(type: type, title: fileName, tags: [defaultTag(for: type)], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
+        let type = DataItemType(mimeType: mimeType, fileName: fileName)
+        let item = DataItem(type: type, title: fileName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
         items.insert(item, at: 0)
         saveItems()
         return item
     }
 
     func fileURL(for item: DataItem) -> URL? {
-        guard let fileName = item.fileName, let filesURL = filesURL else { return nil }
+        guard let fileName = item.fileName, let filesURL = StorageConstants.filesURL else { return nil }
         return filesURL.appendingPathComponent(fileName)
     }
 
@@ -94,57 +78,24 @@ class StorageService: ObservableObject {
     }
 
     func deleteItem(_ item: DataItem) {
-        if let fileName = item.fileName, let filesURL = filesURL {
+        if let fileName = item.fileName, let filesURL = StorageConstants.filesURL {
             try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
         }
         items.removeAll { $0.id == item.id }
         saveItems()
     }
 
-    private func isURLString(_ text: String) -> Bool {
-        guard let url = URL(string: text),
-              let scheme = url.scheme,
-              (scheme == "http" || scheme == "https"),
-              let host = url.host(percentEncoded: false), !host.isEmpty else { return false }
-        return true
-    }
-
-    private func defaultTag(for type: DataItemType) -> String {
-        switch type {
-        case .audio: return "Audio"
-        case .image: return "Foto"
-        case .video: return "Video"
-        case .text: return "Text"
-        case .file: return "Datei"
-        }
-    }
-
-    private func dataItemType(forMimeType mimeType: String, fileName: String) -> DataItemType {
-        if mimeType.hasPrefix("image/") { return .image }
-        if mimeType.hasPrefix("video/") { return .video }
-        if mimeType.hasPrefix("audio/") { return .audio }
-        let ext = URL(fileURLWithPath: fileName).pathExtension.lowercased()
-        switch ext {
-        case "jpg", "jpeg", "png", "gif", "heic", "heif", "bmp", "tiff", "webp": return .image
-        case "mp4", "mov", "avi", "mkv", "m4v": return .video
-        case "mp3", "m4a", "aac", "wav", "flac", "ogg", "opus": return .audio
-        default: return .file
-        }
-    }
-
     private func syncToiCloud() {
-        // One-way sync: copies local App Group files to iCloud Documents container.
-        // Does not handle conflict resolution or syncing from iCloud to local.
         DispatchQueue.global(qos: .background).async {
             guard let iCloudURL = self.iCloudURL else { return }
             try? FileManager.default.createDirectory(at: iCloudURL, withIntermediateDirectories: true)
-            if let localItemsURL = self.itemsFileURL {
-                let iCloudItemsURL = iCloudURL.appendingPathComponent(self.itemsFileName)
+            if let localItemsURL = StorageConstants.itemsFileURL {
+                let iCloudItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
                 try? FileManager.default.removeItem(at: iCloudItemsURL)
                 try? FileManager.default.copyItem(at: localItemsURL, to: iCloudItemsURL)
             }
-            if let localFilesURL = self.filesURL {
-                let iCloudFilesURL = iCloudURL.appendingPathComponent("Files")
+            if let localFilesURL = StorageConstants.filesURL {
+                let iCloudFilesURL = iCloudURL.appendingPathComponent(StorageConstants.filesDirectoryName)
                 try? FileManager.default.createDirectory(at: iCloudFilesURL, withIntermediateDirectories: true)
                 if let files = try? FileManager.default.contentsOfDirectory(atPath: localFilesURL.path) {
                     for file in files {

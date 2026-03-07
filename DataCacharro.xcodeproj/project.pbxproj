@@ -21,6 +21,11 @@
 		E9863949B85444A68DC63FBC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C26471B674D4168A3C92330; };
 		A91F2892C87D47EE982F52DA /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB876AF5FDC488EAC718802; };
 		B0305A713ABB4856B9F6C76B /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 39B24CD7FDF64502860D51EA; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CC3D4E5F6A7B8C9D0E1F2A3B /* StorageConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F6A7B8C9D0E1F; };
+		DD4E5F6A7B8C9D0E1F2A3B4C /* StorageConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F6A7B8C9D0E1F; };
+		EE5F6A7B8C9D0E1F2A3B4C5D /* ItemTypeHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A; };
+		FF6A7B8C9D0E1F2A3B4C5D6E /* ItemTypeHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A; };
+		AA7B8C9D0E1F2A3B4C5D6E7F /* DataItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279CD837FE7C49C4A6CC9C29; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +80,8 @@
 		8EB876AF5FDC488EAC718802 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		AC3F05E201314119BD834C37 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F7493DC227CC4FC595497A0F /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* StorageConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageConstants.swift; sourceTree = "<group>"; };
+		BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemTypeHelpers.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,6 +105,7 @@
 		45D6E2F72E9542389AB70389 = {
 			isa = PBXGroup;
 			children = (
+				AB8C9D0E1F2A3B4C5D6E7F8A /* Shared */,
 				12899E8C74024BEE8A0D9313 /* DataCacharro */,
 				3389731AB0494BE78F6C677C /* ShareExtension */,
 				69A50CAF6D594B92A89AB55F /* Products */,
@@ -118,7 +126,6 @@
 			children = (
 				F094EFE7419C4F2EB7F96D5A /* SavedMessagesApp.swift */,
 				FA50B3647E714E6BAA92CFF9 /* ContentView.swift */,
-				5D082AB5D9BD4A51B910FDE0 /* Models */,
 				4704025D1139482BB1249BD3 /* Views */,
 				667A517A550C42CB8DDB8B6F /* Services */,
 				8C26471B674D4168A3C92330 /* Assets.xcassets */,
@@ -128,12 +135,14 @@
 			path = DataCacharro;
 			sourceTree = "<group>";
 		};
-		5D082AB5D9BD4A51B910FDE0 /* Models */ = {
+		AB8C9D0E1F2A3B4C5D6E7F8A /* Shared */ = {
 			isa = PBXGroup;
 			children = (
 				279CD837FE7C49C4A6CC9C29 /* DataItem.swift */,
+				AA1B2C3D4E5F6A7B8C9D0E1F /* StorageConstants.swift */,
+				BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */,
 			);
-			path = Models;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		4704025D1139482BB1249BD3 /* Views */ = {
@@ -270,6 +279,8 @@
 				A8DFB23385BC42369E134D99 /* SavedMessagesApp.swift in Sources */,
 				F1F8D98E94FE49A7A0225856 /* ContentView.swift in Sources */,
 				FEA97F23E56A415AA64164A5 /* DataItem.swift in Sources */,
+				CC3D4E5F6A7B8C9D0E1F2A3B /* StorageConstants.swift in Sources */,
+				EE5F6A7B8C9D0E1F2A3B4C5D /* ItemTypeHelpers.swift in Sources */,
 				FB2FBCDC2E8143D882036336 /* ItemListView.swift in Sources */,
 				990BE438587F488882DCB3CF /* ItemDetailView.swift in Sources */,
 				207029D477134FFCBA734685 /* AddTextView.swift in Sources */,
@@ -286,6 +297,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				A91F2892C87D47EE982F52DA /* ShareViewController.swift in Sources */,
+				AA7B8C9D0E1F2A3B4C5D6E7F /* DataItem.swift in Sources */,
+				DD4E5F6A7B8C9D0E1F2A3B4C /* StorageConstants.swift in Sources */,
+				FF6A7B8C9D0E1F2A3B4C5D6E /* ItemTypeHelpers.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
