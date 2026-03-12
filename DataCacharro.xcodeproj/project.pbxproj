@@ -18,6 +18,7 @@
 		6E1D8983B19A41FFBDBCA6DB /* CameraPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABEA5C8708FF4A21A5E013B4; };
 		5A2AA24D4A2A4059A22BC7C2 /* StorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A782A63F2A504632B05CB4FC; };
 		B1C2D3E4F5A6B7C8D9E0F1A2 /* TagsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D3E4F5A6B7C8D9E0F1A2B3; };
+		E4B5C6D7E8F9A0B1C2D3E4F5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A4B5C6D7E8F9A0B1C2D3E4; };
 		E9863949B85444A68DC63FBC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C26471B674D4168A3C92330; };
 		A91F2892C87D47EE982F52DA /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB876AF5FDC488EAC718802; };
 		B0305A713ABB4856B9F6C76B /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 39B24CD7FDF64502860D51EA; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -82,6 +83,7 @@
 		F7493DC227CC4FC595497A0F /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		AA1B2C3D4E5F6A7B8C9D0E1F /* StorageConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageConstants.swift; sourceTree = "<group>"; };
 		BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemTypeHelpers.swift; sourceTree = "<group>"; };
+		D3A4B5C6D7E8F9A0B1C2D3E4 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,6 +157,7 @@
 				65CA0F1D38E24F0C99F70B6F /* AddPhotoVideoView.swift */,
 				ABEA5C8708FF4A21A5E013B4 /* CameraPickerView.swift */,
 				C2D3E4F5A6B7C8D9E0F1A2B3 /* TagsView.swift */,
+				D3A4B5C6D7E8F9A0B1C2D3E4 /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -289,6 +292,7 @@
 				6E1D8983B19A41FFBDBCA6DB /* CameraPickerView.swift in Sources */,
 				5A2AA24D4A2A4059A22BC7C2 /* StorageService.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* TagsView.swift in Sources */,
+				E4B5C6D7E8F9A0B1C2D3E4F5 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
