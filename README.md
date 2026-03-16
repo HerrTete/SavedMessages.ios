@@ -95,7 +95,7 @@ Shared/                             ← Gemeinsamer Code (App + Extension)
 ├── DataItem.swift                  ← Datenmodell
 ├── StorageConstants.swift          ← Zentrale Konstanten & Pfade
 └── ItemTypeHelpers.swift           ← Typ-Erkennung & Standard-Tags
-DataCacharro/                       ← Haupt-App
+SavedMessages/                      ← Haupt-App
 ├── SavedMessagesApp.swift          ← App-Einstiegspunkt
 ├── ContentView.swift               ← Tab-Ansicht (Items + Tags)
 ├── Services/
