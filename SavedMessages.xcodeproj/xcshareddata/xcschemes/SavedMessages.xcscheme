@@ -17,7 +17,7 @@
                BlueprintIdentifier = "1E7B78848BB548158AD1F3F6"
                BuildableName = "SavedMessages.app"
                BlueprintName = "SavedMessages"
-               ReferencedContainer = "container:DataCacharro.xcodeproj">
+               ReferencedContainer = "container:SavedMessages.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -47,7 +47,7 @@
             BlueprintIdentifier = "1E7B78848BB548158AD1F3F6"
             BuildableName = "SavedMessages.app"
             BlueprintName = "SavedMessages"
-            ReferencedContainer = "container:DataCacharro.xcodeproj">
+            ReferencedContainer = "container:SavedMessages.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -64,7 +64,7 @@
             BlueprintIdentifier = "1E7B78848BB548158AD1F3F6"
             BuildableName = "SavedMessages.app"
             BlueprintName = "SavedMessages"
-            ReferencedContainer = "container:DataCacharro.xcodeproj">
+            ReferencedContainer = "container:SavedMessages.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
