@@ -43,11 +43,19 @@ struct ContentView: View {
             }
 
             NavigationStack {
+                SettingsView()
+                    .navigationTitle("Settings")
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape")
+            }
+
+            NavigationStack {
                 TagsView()
                     .navigationTitle("Tags")
             }
             .tabItem {
-                Label("Tags", systemImage: "tag")
+                Label("Tags", systemImage: "number")
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIScene.willEnterForegroundNotification)) { _ in
