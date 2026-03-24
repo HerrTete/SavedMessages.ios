@@ -271,8 +271,10 @@ final class SavedMessagesUITests: XCTestCase {
             deleteButton.tap()
         }
 
-        // Item should be gone
-        XCTAssertFalse(app.staticTexts["Delete me via swipe"].waitForExistence(timeout: 2))
+        // Item should be gone — wait briefly for UI to update, then verify absence
+        let deletedItem = app.staticTexts["Delete me via swipe"]
+        let disappeared = deletedItem.waitForNonExistence(timeout: 3)
+        XCTAssertTrue(disappeared, "Deleted item should no longer appear in the list")
     }
 
     // MARK: - Empty State
