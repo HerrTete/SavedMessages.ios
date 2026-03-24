@@ -31,6 +31,7 @@ struct AddPhotoVideoView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .accessibilityIdentifier("cameraButton")
 
                 Divider()
 
@@ -74,12 +75,14 @@ struct AddPhotoVideoView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .accessibilityIdentifier("cancelButton")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         Task { await saveSelectedItems() }
                     }
                     .disabled(selectedItems.isEmpty || isProcessing)
+                    .accessibilityIdentifier("saveButton")
                 }
             }
             .fullScreenCover(isPresented: $showingCamera) {

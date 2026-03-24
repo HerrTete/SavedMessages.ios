@@ -9,11 +9,13 @@ struct AddTextView: View {
         NavigationStack {
             TextEditor(text: $text)
                 .padding()
+                .accessibilityIdentifier("textEditor")
                 .navigationTitle("Add Text")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button("Cancel") { dismiss() }
+                            .accessibilityIdentifier("cancelButton")
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Save") {
@@ -23,6 +25,7 @@ struct AddTextView: View {
                             dismiss()
                         }
                         .disabled(text.isEmpty)
+                        .accessibilityIdentifier("saveButton")
                     }
                 }
         }
