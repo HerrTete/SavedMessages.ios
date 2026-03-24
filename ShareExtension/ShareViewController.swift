@@ -301,9 +301,15 @@ class ShareViewController: UIViewController {
         let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
 
         var existing: [DataItem] = []
-        if let data = try? Data(contentsOf: url),
-           let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
-            existing = decoded
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: url.path) {
+            do {
+                let data = try Data(contentsOf: url)
+                existing = try JSONDecoder().decode([DataItem].self, from: data)
+            } catch {
+                // Treat read/decode failures as hard failures to avoid losing existing data
+                return false
+            }
         }
 
         itemsLock.lock()
