@@ -121,18 +121,29 @@ struct AddPhotoVideoView: View {
                 continue
             }
 
-            let fileData: Data? = await withCheckedContinuation { continuation in
+            let tempURL: URL? = await withCheckedContinuation { continuation in
                 pickerItem.itemProvider.loadFileRepresentation(forTypeIdentifier: typeID) { url, error in
-                    guard let url = url, let data = try? Data(contentsOf: url) else {
+                    guard let url = url else {
                         continuation.resume(returning: nil)
                         return
                     }
-                    continuation.resume(returning: data)
+                    // Copy to a persistent temp location since the provided
+                    // URL is only valid within this callback.
+                    let tempFile = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathExtension(url.pathExtension)
+                    do {
+                        try FileManager.default.copyItem(at: url, to: tempFile)
+                        continuation.resume(returning: tempFile)
+                    } catch {
+                        continuation.resume(returning: nil)
+                    }
                 }
             }
 
-            if let fileData = fileData {
-                storage.addFileItem(data: fileData, fileName: name, mimeType: mimeType)
+            if let tempURL = tempURL {
+                storage.addFileItem(from: tempURL, mimeType: mimeType)
+                try? FileManager.default.removeItem(at: tempURL)
             } else {
                 loadFailedCount += 1
             }
