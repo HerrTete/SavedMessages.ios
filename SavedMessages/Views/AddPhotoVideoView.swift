@@ -2,6 +2,24 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
+/// A Transferable wrapper that uses FileRepresentation so large media
+/// (especially videos) are streamed from disk instead of loaded into memory.
+private struct MediaFile: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .data) { file in
+            SentTransferredFile(file.url)
+        } importing: { received in
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(received.file.pathExtension)
+            try FileManager.default.copyItem(at: received.file, to: tempURL)
+            return Self(url: tempURL)
+        }
+    }
+}
+
 struct AddPhotoVideoView: View {
     @EnvironmentObject var storage: StorageService
     @Environment(\.dismiss) var dismiss
@@ -116,38 +134,13 @@ struct AddPhotoVideoView: View {
                 continue
             }
 
-            // Fallback: use file representation via the item provider.
-            // This is needed for videos and other large media that can't
-            // be loaded as raw Data through the Transferable protocol.
-            guard let typeID = contentType?.identifier else {
-                loadFailedCount += 1
-                continue
-            }
-
-            let tempURL: URL? = await withCheckedContinuation { continuation in
-                pickerItem.itemProvider.loadFileRepresentation(forTypeIdentifier: typeID) { url, error in
-                    guard let url = url else {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-                    // Copy to a persistent temp location since the provided
-                    // URL is only valid within this callback.
-                    let tempFile = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathExtension(url.pathExtension)
-                    do {
-                        try FileManager.default.copyItem(at: url, to: tempFile)
-                        continuation.resume(returning: tempFile)
-                    } catch {
-                        continuation.resume(returning: nil)
-                    }
-                }
-            }
-
-            if let tempURL = tempURL {
-                let addedItem = storage.addFileItem(from: tempURL, mimeType: mimeType)
+            // Fallback: use FileRepresentation-based Transferable so large
+            // media (especially videos) are streamed from disk rather than
+            // loaded into memory as raw Data.
+            if let mediaFile = try? await pickerItem.loadTransferable(type: MediaFile.self) {
+                let addedItem = await storage.addFileItem(from: mediaFile.url, mimeType: mimeType)
                 if addedItem != nil {
-                    try? FileManager.default.removeItem(at: tempURL)
+                    try? FileManager.default.removeItem(at: mediaFile.url)
                 } else {
                     loadFailedCount += 1
                 }
