@@ -63,9 +63,11 @@ struct ItemListView: View {
         }
         .sheet(item: $selectedItem) { item in
             ItemDetailView(item: item)
+                .environmentObject(storage)
         }
         .sheet(item: $tagItem) { item in
             QuickTagView(item: item)
+                .environmentObject(storage)
         }
         .sheet(isPresented: $showingShareSheet) {
             ShareSheet(items: shareItems)
