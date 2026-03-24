@@ -86,21 +86,8 @@ class ShareViewController: UIViewController {
             return
         }
 
-        // Generic data / files that didn't match a specific media type
-        if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.data.identifier) { item, _ in
-                if let url = item as? URL {
-                    self.saveFileItem(url: url)
-                } else if let data = item as? Data {
-                    let name = provider.suggestedName ?? "file"
-                    self.saveDataItem(data: data, name: name, mimeType: "application/octet-stream")
-                }
-                completion()
-            }
-            return
-        }
-
-        // Plain text as the final fallback
+        // Plain text before generic data, because plainText conforms to
+        // UTType.data — checking data first would swallow text shares.
         if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { item, _ in
                 if let text = item as? String {
@@ -109,6 +96,20 @@ class ShareViewController: UIViewController {
                     self.saveTextItem(text: url.absoluteString)
                 } else if let data = item as? Data, let text = String(data: data, encoding: .utf8) {
                     self.saveTextItem(text: text)
+                }
+                completion()
+            }
+            return
+        }
+
+        // Generic data / files that didn't match any specific type above
+        if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.data.identifier) { item, _ in
+                if let url = item as? URL {
+                    self.saveFileItem(url: url)
+                } else if let data = item as? Data {
+                    let name = provider.suggestedName ?? "file"
+                    self.saveDataItem(data: data, name: name, mimeType: "application/octet-stream")
                 }
                 completion()
             }
