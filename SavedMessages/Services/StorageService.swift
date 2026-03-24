@@ -14,6 +14,27 @@ class StorageService: ObservableObject {
     init() {
         setupDirectories()
         loadItems()
+        registerForShareExtensionNotifications()
+    }
+
+    deinit {
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        CFNotificationCenterRemoveEveryObserver(center, Unmanaged.passUnretained(self).toOpaque())
+    }
+
+    private func registerForShareExtensionNotifications() {
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let name = StorageConstants.itemsChangedNotification as CFString
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        CFNotificationCenterAddObserver(
+            center, observer,
+            { _, observer, _, _, _ in
+                guard let observer = observer else { return }
+                let service = Unmanaged<StorageService>.fromOpaque(observer).takeUnretainedValue()
+                service.loadItems()
+            },
+            name, nil, .deliverImmediately
+        )
     }
 
     private func setupDirectories() {

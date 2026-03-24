@@ -3,14 +3,104 @@ import UniformTypeIdentifiers
 
 class ShareViewController: UIViewController {
 
+    // MARK: - Pending items (collected from all providers, saved once at the end)
+
+    private var pendingItems: [DataItem] = []
+    private let itemsLock = NSLock()
+
+    // MARK: - HUD UI
+
+    private let hudContainer = UIView()
+    private let iconView = UIImageView()
+    private let statusLabel = UILabel()
+    private var spinner: UIActivityIndicatorView?
+
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupHUD()
         processSharedItems()
     }
 
+    // MARK: - HUD Setup
+
+    private func setupHUD() {
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.15)
+
+        hudContainer.backgroundColor = .systemBackground
+        hudContainer.layer.cornerRadius = 16
+        hudContainer.layer.shadowColor = UIColor.black.cgColor
+        hudContainer.layer.shadowOpacity = 0.15
+        hudContainer.layer.shadowRadius = 10
+        hudContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(hudContainer)
+
+        let activityIndicator = UIActivityIndicatorView(style: .large)
+        activityIndicator.startAnimating()
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        hudContainer.addSubview(activityIndicator)
+        spinner = activityIndicator
+
+        iconView.contentMode = .scaleAspectFit
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.isHidden = true
+        hudContainer.addSubview(iconView)
+
+        statusLabel.text = "Speichern …"
+        statusLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+        statusLabel.textColor = .label
+        statusLabel.textAlignment = .center
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        hudContainer.addSubview(statusLabel)
+
+        NSLayoutConstraint.activate([
+            hudContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            hudContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            hudContainer.widthAnchor.constraint(equalToConstant: 160),
+            hudContainer.heightAnchor.constraint(equalToConstant: 130),
+
+            activityIndicator.centerXAnchor.constraint(equalTo: hudContainer.centerXAnchor),
+            activityIndicator.topAnchor.constraint(equalTo: hudContainer.topAnchor, constant: 24),
+
+            iconView.centerXAnchor.constraint(equalTo: hudContainer.centerXAnchor),
+            iconView.topAnchor.constraint(equalTo: hudContainer.topAnchor, constant: 24),
+            iconView.widthAnchor.constraint(equalToConstant: 44),
+            iconView.heightAnchor.constraint(equalToConstant: 44),
+
+            statusLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 12),
+            statusLabel.leadingAnchor.constraint(equalTo: hudContainer.leadingAnchor, constant: 8),
+            statusLabel.trailingAnchor.constraint(equalTo: hudContainer.trailingAnchor, constant: -8),
+        ])
+    }
+
+    private func showResult(success: Bool, count: Int) {
+        spinner?.stopAnimating()
+        spinner?.isHidden = true
+        iconView.isHidden = false
+
+        let symbolConfig = UIImage.SymbolConfiguration(pointSize: 40, weight: .medium)
+        if success {
+            iconView.tintColor = .systemGreen
+            iconView.image = UIImage(systemName: "checkmark.circle.fill", withConfiguration: symbolConfig)
+            statusLabel.text = count == 1 ? "Gespeichert" : "\(count) gespeichert"
+        } else {
+            iconView.tintColor = .systemRed
+            iconView.image = UIImage(systemName: "xmark.circle.fill", withConfiguration: symbolConfig)
+            statusLabel.text = "Fehler"
+        }
+
+        let hudDismissDelay: TimeInterval = 1.2
+        DispatchQueue.main.asyncAfter(deadline: .now() + hudDismissDelay) {
+            self.completeRequest()
+        }
+    }
+
+    // MARK: - Processing
+
     private func processSharedItems() {
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
-            completeRequest()
+            showResult(success: false, count: 0)
             return
         }
 
@@ -27,9 +117,15 @@ class ShareViewController: UIViewController {
         }
 
         group.notify(queue: .main) {
-            self.completeRequest()
+            let success = self.commitPendingItems()
+            self.itemsLock.lock()
+            let count = self.pendingItems.count
+            self.itemsLock.unlock()
+            self.showResult(success: success && count > 0, count: count)
         }
     }
+
+    // MARK: - Provider handling
 
     private func processProvider(_ provider: NSItemProvider, completion: @escaping () -> Void) {
         // Check specific media types first to avoid the greedy plainText match.
@@ -41,17 +137,25 @@ class ShareViewController: UIViewController {
             if provider.hasItemConformingToTypeIdentifier(typeID) {
                 provider.loadItem(forTypeIdentifier: typeID) { item, _ in
                     if let url = item as? URL {
-                        self.saveFileItem(url: url)
+                        if let dataItem = self.copyFileToContainer(url: url) {
+                            self.addPendingItem(dataItem)
+                        }
                     } else if let data = item as? Data {
                         let name = provider.suggestedName ?? "file"
                         let mimeType = UTType(typeID)?.preferredMIMEType ?? "application/octet-stream"
-                        self.saveDataItem(data: data, name: name, mimeType: mimeType)
+                        if let dataItem = self.writeDataToContainer(data: data, name: name, mimeType: mimeType) {
+                            self.addPendingItem(dataItem)
+                        }
                     } else if let image = item as? UIImage {
                         let name = provider.suggestedName ?? "image"
                         if let jpegData = image.jpegData(compressionQuality: 0.9) {
-                            self.saveDataItem(data: jpegData, name: name, mimeType: "image/jpeg")
+                            if let dataItem = self.writeDataToContainer(data: jpegData, name: name + ".jpg", mimeType: "image/jpeg") {
+                                self.addPendingItem(dataItem)
+                            }
                         } else if let pngData = image.pngData() {
-                            self.saveDataItem(data: pngData, name: name, mimeType: "image/png")
+                            if let dataItem = self.writeDataToContainer(data: pngData, name: name + ".png", mimeType: "image/png") {
+                                self.addPendingItem(dataItem)
+                            }
                         }
                     }
                     completion()
@@ -63,8 +167,9 @@ class ShareViewController: UIViewController {
         // File URLs (e.g. PDFs, documents shared from Files app)
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
-                if let url = item as? URL {
-                    self.saveFileItem(url: url)
+                if let url = item as? URL,
+                   let dataItem = self.copyFileToContainer(url: url) {
+                    self.addPendingItem(dataItem)
                 }
                 completion()
             }
@@ -76,9 +181,11 @@ class ShareViewController: UIViewController {
             provider.loadItem(forTypeIdentifier: UTType.url.identifier) { item, _ in
                 if let url = item as? URL {
                     if url.isFileURL {
-                        self.saveFileItem(url: url)
+                        if let dataItem = self.copyFileToContainer(url: url) {
+                            self.addPendingItem(dataItem)
+                        }
                     } else {
-                        self.saveTextItem(text: url.absoluteString)
+                        self.addPendingItem(self.makeTextItem(text: url.absoluteString))
                     }
                 }
                 completion()
@@ -90,12 +197,16 @@ class ShareViewController: UIViewController {
         // UTType.data — checking data first would swallow text shares.
         if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { item, _ in
-                if let text = item as? String {
-                    self.saveTextItem(text: text)
+                var text: String?
+                if let t = item as? String {
+                    text = t
                 } else if let url = item as? URL {
-                    self.saveTextItem(text: url.absoluteString)
-                } else if let data = item as? Data, let text = String(data: data, encoding: .utf8) {
-                    self.saveTextItem(text: text)
+                    text = url.absoluteString
+                } else if let data = item as? Data {
+                    text = String(data: data, encoding: .utf8)
+                }
+                if let text = text {
+                    self.addPendingItem(self.makeTextItem(text: text))
                 }
                 completion()
             }
@@ -106,10 +217,14 @@ class ShareViewController: UIViewController {
         if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.data.identifier) { item, _ in
                 if let url = item as? URL {
-                    self.saveFileItem(url: url)
+                    if let dataItem = self.copyFileToContainer(url: url) {
+                        self.addPendingItem(dataItem)
+                    }
                 } else if let data = item as? Data {
                     let name = provider.suggestedName ?? "file"
-                    self.saveDataItem(data: data, name: name, mimeType: "application/octet-stream")
+                    if let dataItem = self.writeDataToContainer(data: data, name: name, mimeType: "application/octet-stream") {
+                        self.addPendingItem(dataItem)
+                    }
                 }
                 completion()
             }
@@ -119,17 +234,23 @@ class ShareViewController: UIViewController {
         completion()
     }
 
-    private func saveTextItem(text: String) {
-        guard let containerURL = StorageConstants.appGroupURL else { return }
-        var items = loadItems(from: containerURL)
-        let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
-        let newItem = DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text)
-        items.insert(newItem, at: 0)
-        saveItems(items, to: containerURL)
+    // MARK: - Item helpers
+
+    private func addPendingItem(_ item: DataItem) {
+        itemsLock.lock()
+        pendingItems.append(item)
+        itemsLock.unlock()
     }
 
-    private func saveFileItem(url: URL) {
-        guard let containerURL = StorageConstants.appGroupURL else { return }
+    private func makeTextItem(text: String) -> DataItem {
+        let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
+        return DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text)
+    }
+
+    // MARK: - File operations
+
+    private func copyFileToContainer(url: URL) -> DataItem? {
+        guard let containerURL = StorageConstants.appGroupURL else { return nil }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
 
@@ -146,46 +267,79 @@ class ShareViewController: UIViewController {
                 try FileManager.default.copyItem(at: url, to: dest)
             }
         } catch {
-            return
+            return nil
         }
 
         let mimeType = mimeTypeForExtension(ext)
         let type = DataItemType(mimeType: mimeType, fileName: origName)
-        var items = loadItems(from: containerURL)
-        let newItem = DataItem(type: type, title: origName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
-        items.insert(newItem, at: 0)
-        saveItems(items, to: containerURL)
+        return DataItem(type: type, title: origName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
     }
 
-    private func saveDataItem(data: Data, name: String, mimeType: String) {
-        guard let containerURL = StorageConstants.appGroupURL else { return }
+    private func writeDataToContainer(data: Data, name: String, mimeType: String) -> DataItem? {
+        guard let containerURL = StorageConstants.appGroupURL else { return nil }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
 
         let ext = URL(fileURLWithPath: name).pathExtension
         let uniqueName = UUID().uuidString + (ext.isEmpty ? "" : ".\(ext)")
         let dest = filesDir.appendingPathComponent(uniqueName)
-        try? data.write(to: dest)
+
+        do {
+            try data.write(to: dest)
+        } catch {
+            return nil
+        }
 
         let type = DataItemType(mimeType: mimeType, fileName: name)
-        var items = loadItems(from: containerURL)
-        let newItem = DataItem(type: type, title: name, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
-        items.insert(newItem, at: 0)
-        saveItems(items, to: containerURL)
+        return DataItem(type: type, title: name, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
     }
 
-    private func loadItems(from containerURL: URL) -> [DataItem] {
-        let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
-        guard let data = try? Data(contentsOf: url) else { return [] }
-        return (try? JSONDecoder().decode([DataItem].self, from: data)) ?? []
-    }
+    // MARK: - Persistence (single atomic save of all collected items)
 
-    private func saveItems(_ items: [DataItem], to containerURL: URL) {
+    private func commitPendingItems() -> Bool {
+        guard let containerURL = StorageConstants.appGroupURL else { return false }
         let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
-        if let data = try? JSONEncoder().encode(items) {
-            try? data.write(to: url, options: .atomic)
+
+        var existing: [DataItem] = []
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: url.path) {
+            do {
+                let data = try Data(contentsOf: url)
+                existing = try JSONDecoder().decode([DataItem].self, from: data)
+            } catch {
+                // Treat read/decode failures as hard failures to avoid losing existing data
+                return false
+            }
         }
+
+        itemsLock.lock()
+        let newItems = pendingItems
+        itemsLock.unlock()
+
+        guard !newItems.isEmpty else { return false }
+
+        existing.insert(contentsOf: newItems, at: 0)
+
+        guard let encoded = try? JSONEncoder().encode(existing) else { return false }
+        do {
+            try encoded.write(to: url, options: .atomic)
+        } catch {
+            return false
+        }
+
+        notifyMainApp()
+        return true
     }
+
+    // MARK: - Cross-process notification
+
+    private func notifyMainApp() {
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let name = CFNotificationName(StorageConstants.itemsChangedNotification as CFString)
+        CFNotificationCenterPostNotification(center, name, nil, nil, true)
+    }
+
+    // MARK: - Helpers
 
     private func mimeTypeForExtension(_ ext: String) -> String {
         if let utType = UTType(filenameExtension: ext) {
