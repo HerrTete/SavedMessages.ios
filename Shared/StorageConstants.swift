@@ -8,6 +8,7 @@ enum StorageConstants {
 
     static var appGroupURL: URL? {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
     }
 
     static var filesURL: URL? {
