@@ -31,12 +31,15 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingAddText) {
                 AddTextView()
+                    .environmentObject(storage)
             }
             .sheet(isPresented: $showingAddAudio) {
                 AddAudioView()
+                    .environmentObject(storage)
             }
             .sheet(isPresented: $showingAddPhotoVideo) {
                 AddPhotoVideoView()
+                    .environmentObject(storage)
             }
             .tabItem {
                 Label("Items", systemImage: "list.bullet")

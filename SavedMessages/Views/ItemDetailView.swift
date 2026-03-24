@@ -78,6 +78,7 @@ struct ItemDetailView: View {
         }
         .sheet(isPresented: $showingEdit) {
             EditItemView(item: currentItem)
+                .environmentObject(storage)
         }
     }
 
