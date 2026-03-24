@@ -46,6 +46,13 @@ class ShareViewController: UIViewController {
                         let name = provider.suggestedName ?? "file"
                         let mimeType = UTType(typeID)?.preferredMIMEType ?? "application/octet-stream"
                         self.saveDataItem(data: data, name: name, mimeType: mimeType)
+                    } else if let image = item as? UIImage {
+                        let name = provider.suggestedName ?? "image"
+                        if let jpegData = image.jpegData(compressionQuality: 0.9) {
+                            self.saveDataItem(data: jpegData, name: name, mimeType: "image/jpeg")
+                        } else if let pngData = image.pngData() {
+                            self.saveDataItem(data: pngData, name: name, mimeType: "image/png")
+                        }
                     }
                     completion()
                 }
