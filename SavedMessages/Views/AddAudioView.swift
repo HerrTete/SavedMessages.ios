@@ -83,7 +83,7 @@ struct AddAudioView: View {
     }
 
     private func startRecording() {
-        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+        AVAudioApplication.requestRecordPermission { granted in
             DispatchQueue.main.async {
                 if granted {
                     self.beginRecording()

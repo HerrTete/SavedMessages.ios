@@ -89,8 +89,8 @@ struct AddPhotoVideoView: View {
                 }
                 .ignoresSafeArea()
             }
-            .onChange(of: showingCamera) { isShowing in
-                if !isShowing && didCapture {
+            .onChange(of: showingCamera) {
+                if !showingCamera && didCapture {
                     dismiss()
                 }
             }
