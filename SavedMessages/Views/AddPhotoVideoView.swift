@@ -97,19 +97,45 @@ struct AddPhotoVideoView: View {
         }
     }
 
+    @MainActor
     private func saveSelectedItems() async {
         isProcessing = true
         loadFailedCount = 0
         for pickerItem in selectedItems {
-            guard let data = try? await pickerItem.loadTransferable(type: Data.self) else {
+            let contentType = pickerItem.supportedContentTypes.first
+            let mimeType = contentType?.preferredMIMEType ?? "application/octet-stream"
+            let ext = contentType?.preferredFilenameExtension ?? "bin"
+            let name = "\(UUID().uuidString).\(ext)"
+
+            // Try direct Data loading first (reliable for images)
+            if let data = try? await pickerItem.loadTransferable(type: Data.self) {
+                storage.addFileItem(data: data, fileName: name, mimeType: mimeType)
+                continue
+            }
+
+            // Fallback: use file representation via the item provider.
+            // This is needed for videos and other large media that can't
+            // be loaded as raw Data through the Transferable protocol.
+            guard let typeID = contentType?.identifier else {
                 loadFailedCount += 1
                 continue
             }
-            let contentType = pickerItem.supportedContentTypes.first
-            let mimeType = contentType?.preferredMIMEType ?? "image/jpeg"
-            let ext = contentType?.preferredFilenameExtension ?? "jpg"
-            let name = "\(UUID().uuidString).\(ext)"
-            storage.addFileItem(data: data, fileName: name, mimeType: mimeType)
+
+            let fileData: Data? = await withCheckedContinuation { continuation in
+                pickerItem.itemProvider.loadFileRepresentation(forTypeIdentifier: typeID) { url, error in
+                    guard let url = url, let data = try? Data(contentsOf: url) else {
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    continuation.resume(returning: data)
+                }
+            }
+
+            if let fileData = fileData {
+                storage.addFileItem(data: fileData, fileName: name, mimeType: mimeType)
+            } else {
+                loadFailedCount += 1
+            }
         }
         isProcessing = false
         if loadFailedCount > 0 {

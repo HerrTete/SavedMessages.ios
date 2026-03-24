@@ -62,6 +62,25 @@ class StorageService: ObservableObject {
         return item
     }
 
+    @discardableResult
+    func addFileItem(from sourceURL: URL, mimeType: String, sourceApp: String? = nil) -> DataItem? {
+        guard let filesURL = StorageConstants.filesURL else { return nil }
+        let ext = sourceURL.pathExtension
+        let uniqueName = UUID().uuidString + (ext.isEmpty ? "" : ".\(ext)")
+        let fileURL = filesURL.appendingPathComponent(uniqueName)
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: fileURL)
+        } catch {
+            return nil
+        }
+        let originalName = sourceURL.lastPathComponent
+        let type = DataItemType(mimeType: mimeType, fileName: originalName)
+        let item = DataItem(type: type, title: originalName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
+        items.insert(item, at: 0)
+        saveItems()
+        return item
+    }
+
     func fileURL(for item: DataItem) -> URL? {
         guard let fileName = item.fileName, let filesURL = StorageConstants.filesURL else { return nil }
         return filesURL.appendingPathComponent(fileName)
