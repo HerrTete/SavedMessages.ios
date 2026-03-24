@@ -18,4 +18,6 @@ enum StorageConstants {
     static var itemsFileURL: URL? {
         appGroupURL?.appendingPathComponent(itemsFileName)
     }
+
+    static let itemsChangedNotification = "com.HerrTete.SavedMessages.itemsChanged"
 }

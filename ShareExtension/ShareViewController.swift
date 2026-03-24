@@ -90,7 +90,8 @@ class ShareViewController: UIViewController {
             statusLabel.text = "Fehler"
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        let hudDismissDelay: TimeInterval = 1.2
+        DispatchQueue.main.asyncAfter(deadline: .now() + hudDismissDelay) {
             self.completeRequest()
         }
     }
@@ -328,7 +329,7 @@ class ShareViewController: UIViewController {
 
     private func notifyMainApp() {
         let center = CFNotificationCenterGetDarwinNotifyCenter()
-        let name = CFNotificationName("com.HerrTete.SavedMessages.itemsChanged" as CFString)
+        let name = CFNotificationName(StorageConstants.itemsChangedNotification as CFString)
         CFNotificationCenterPostNotification(center, name, nil, nil, true)
     }
 

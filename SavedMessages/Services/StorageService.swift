@@ -24,7 +24,7 @@ class StorageService: ObservableObject {
 
     private func registerForShareExtensionNotifications() {
         let center = CFNotificationCenterGetDarwinNotifyCenter()
-        let name = "com.HerrTete.SavedMessages.itemsChanged" as CFString
+        let name = StorageConstants.itemsChangedNotification as CFString
         let observer = Unmanaged.passUnretained(self).toOpaque()
         CFNotificationCenterAddObserver(
             center, observer,
