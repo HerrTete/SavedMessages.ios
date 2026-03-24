@@ -63,21 +63,33 @@ class StorageService: ObservableObject {
     }
 
     @discardableResult
-    func addFileItem(from sourceURL: URL, mimeType: String, sourceApp: String? = nil) -> DataItem? {
+    func addFileItem(from sourceURL: URL, mimeType: String, sourceApp: String? = nil) async -> DataItem? {
         guard let filesURL = StorageConstants.filesURL else { return nil }
         let ext = sourceURL.pathExtension
         let uniqueName = UUID().uuidString + (ext.isEmpty ? "" : ".\(ext)")
         let fileURL = filesURL.appendingPathComponent(uniqueName)
-        do {
-            try FileManager.default.copyItem(at: sourceURL, to: fileURL)
-        } catch {
-            return nil
+
+        let copySucceeded: Bool = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try FileManager.default.copyItem(at: sourceURL, to: fileURL)
+                    continuation.resume(returning: true)
+                } catch {
+                    continuation.resume(returning: false)
+                }
+            }
         }
+
+        guard copySucceeded else { return nil }
+
         let originalName = sourceURL.lastPathComponent
         let type = DataItemType(mimeType: mimeType, fileName: originalName)
         let item = DataItem(type: type, title: originalName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
-        items.insert(item, at: 0)
-        saveItems()
+
+        await MainActor.run {
+            self.items.insert(item, at: 0)
+            self.saveItems()
+        }
         return item
     }
 
