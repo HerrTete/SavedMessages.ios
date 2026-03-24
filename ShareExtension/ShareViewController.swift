@@ -32,6 +32,62 @@ class ShareViewController: UIViewController {
     }
 
     private func processProvider(_ provider: NSItemProvider, completion: @escaping () -> Void) {
+        // Check specific media types first to avoid the greedy plainText match.
+        // Many providers (e.g. images shared from Safari) conform to both
+        // public.plain-text and public.image; checking text first would lose the file.
+        let mediaTypes = [UTType.image.identifier, UTType.movie.identifier,
+                          UTType.audio.identifier]
+        for typeID in mediaTypes {
+            if provider.hasItemConformingToTypeIdentifier(typeID) {
+                provider.loadItem(forTypeIdentifier: typeID) { item, _ in
+                    if let url = item as? URL {
+                        self.saveFileItem(url: url)
+                    } else if let data = item as? Data {
+                        let name = provider.suggestedName ?? "file"
+                        let mimeType = UTType(typeID)?.preferredMIMEType ?? "application/octet-stream"
+                        self.saveDataItem(data: data, name: name, mimeType: mimeType)
+                    } else if let image = item as? UIImage {
+                        let name = provider.suggestedName ?? "image"
+                        if let jpegData = image.jpegData(compressionQuality: 0.9) {
+                            self.saveDataItem(data: jpegData, name: name, mimeType: "image/jpeg")
+                        } else if let pngData = image.pngData() {
+                            self.saveDataItem(data: pngData, name: name, mimeType: "image/png")
+                        }
+                    }
+                    completion()
+                }
+                return
+            }
+        }
+
+        // File URLs (e.g. PDFs, documents shared from Files app)
+        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
+                if let url = item as? URL {
+                    self.saveFileItem(url: url)
+                }
+                completion()
+            }
+            return
+        }
+
+        // Web URLs
+        if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.url.identifier) { item, _ in
+                if let url = item as? URL {
+                    if url.isFileURL {
+                        self.saveFileItem(url: url)
+                    } else {
+                        self.saveTextItem(text: url.absoluteString)
+                    }
+                }
+                completion()
+            }
+            return
+        }
+
+        // Plain text before generic data, because plainText conforms to
+        // UTType.data — checking data first would swallow text shares.
         if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
             provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { item, _ in
                 if let text = item as? String {
@@ -43,39 +99,24 @@ class ShareViewController: UIViewController {
                 }
                 completion()
             }
-        } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.url.identifier) { item, _ in
+            return
+        }
+
+        // Generic data / files that didn't match any specific type above
+        if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
+            provider.loadItem(forTypeIdentifier: UTType.data.identifier) { item, _ in
                 if let url = item as? URL {
-                    if url.isFileURL {
-                        self.saveFileItem(url: url)
-                    } else {
-                        self.saveTextItem(text: url.absoluteString)
-                    }
+                    self.saveFileItem(url: url)
+                } else if let data = item as? Data {
+                    let name = provider.suggestedName ?? "file"
+                    self.saveDataItem(data: data, name: name, mimeType: "application/octet-stream")
                 }
                 completion()
             }
-        } else {
-            let fileTypes = [UTType.image.identifier, UTType.movie.identifier,
-                             UTType.audio.identifier, UTType.data.identifier]
-            var handled = false
-            for typeID in fileTypes {
-                if provider.hasItemConformingToTypeIdentifier(typeID) && !handled {
-                    handled = true
-                    provider.loadItem(forTypeIdentifier: typeID) { item, _ in
-                        if let url = item as? URL {
-                            self.saveFileItem(url: url)
-                        } else if let data = item as? Data {
-                            let name = provider.suggestedName ?? "file"
-                            let mimeType = UTType(typeID)?.preferredMIMEType ?? "application/octet-stream"
-                            self.saveDataItem(data: data, name: name, mimeType: mimeType)
-                        }
-                        completion()
-                    }
-                    return
-                }
-            }
-            if !handled { completion() }
+            return
         }
+
+        completion()
     }
 
     private func saveTextItem(text: String) {

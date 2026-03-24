@@ -2,6 +2,24 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
+/// A Transferable wrapper that uses FileRepresentation so large media
+/// (especially videos) are streamed from disk instead of loaded into memory.
+private struct MediaFile: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .data) { file in
+            SentTransferredFile(file.url)
+        } importing: { received in
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(received.file.pathExtension)
+            try FileManager.default.copyItem(at: received.file, to: tempURL)
+            return Self(url: tempURL)
+        }
+    }
+}
+
 struct AddPhotoVideoView: View {
     @EnvironmentObject var storage: StorageService
     @Environment(\.dismiss) var dismiss
@@ -31,6 +49,7 @@ struct AddPhotoVideoView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .accessibilityIdentifier("cameraButton")
 
                 Divider()
 
@@ -74,12 +93,14 @@ struct AddPhotoVideoView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .accessibilityIdentifier("cancelButton")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         Task { await saveSelectedItems() }
                     }
                     .disabled(selectedItems.isEmpty || isProcessing)
+                    .accessibilityIdentifier("saveButton")
                 }
             }
             .fullScreenCover(isPresented: $showingCamera) {
@@ -97,19 +118,35 @@ struct AddPhotoVideoView: View {
         }
     }
 
+    @MainActor
     private func saveSelectedItems() async {
         isProcessing = true
         loadFailedCount = 0
         for pickerItem in selectedItems {
-            guard let data = try? await pickerItem.loadTransferable(type: Data.self) else {
-                loadFailedCount += 1
+            let contentType = pickerItem.supportedContentTypes.first
+            let mimeType = contentType?.preferredMIMEType ?? "application/octet-stream"
+            let ext = contentType?.preferredFilenameExtension ?? "bin"
+            let name = "\(UUID().uuidString).\(ext)"
+
+            // Try direct Data loading first (reliable for images)
+            if let data = try? await pickerItem.loadTransferable(type: Data.self) {
+                storage.addFileItem(data: data, fileName: name, mimeType: mimeType)
                 continue
             }
-            let contentType = pickerItem.supportedContentTypes.first
-            let mimeType = contentType?.preferredMIMEType ?? "image/jpeg"
-            let ext = contentType?.preferredFilenameExtension ?? "jpg"
-            let name = "\(UUID().uuidString).\(ext)"
-            storage.addFileItem(data: data, fileName: name, mimeType: mimeType)
+
+            // Fallback: use FileRepresentation-based Transferable so large
+            // media (especially videos) are streamed from disk rather than
+            // loaded into memory as raw Data.
+            if let mediaFile = try? await pickerItem.loadTransferable(type: MediaFile.self) {
+                let addedItem = await storage.addFileItem(from: mediaFile.url, mimeType: mimeType)
+                if addedItem != nil {
+                    try? FileManager.default.removeItem(at: mediaFile.url)
+                } else {
+                    loadFailedCount += 1
+                }
+            } else {
+                loadFailedCount += 1
+            }
         }
         isProcessing = false
         if loadFailedCount > 0 {

@@ -20,6 +20,7 @@ struct ItemListView: View {
         List {
             ForEach(displayedItems) { item in
                 ItemRowView(item: item)
+                    .accessibilityIdentifier("itemRow_\(item.id)")
                     .onTapGesture {
                         if let url = item.url {
                             UIApplication.shared.open(url)

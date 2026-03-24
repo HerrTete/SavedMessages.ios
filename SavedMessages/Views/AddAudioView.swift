@@ -44,6 +44,7 @@ struct AddAudioView: View {
                     .foregroundStyle(isRecording ? .red : .purple)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .accessibilityIdentifier("recordButton")
 
                 Spacer()
 
@@ -70,6 +71,7 @@ struct AddAudioView: View {
                         cleanUp()
                         dismiss()
                     }
+                    .accessibilityIdentifier("cancelButton")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
@@ -77,6 +79,7 @@ struct AddAudioView: View {
                         dismiss()
                     }
                     .disabled(!hasRecording)
+                    .accessibilityIdentifier("saveButton")
                 }
             }
         }

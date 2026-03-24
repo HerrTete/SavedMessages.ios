@@ -16,16 +16,19 @@ struct ContentView: View {
                             Button(action: { showingAddAudio = true }) {
                                 Image(systemName: "mic.badge.plus")
                             }
+                            .accessibilityIdentifier("addAudioButton")
                         }
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button(action: { showingAddPhotoVideo = true }) {
                                 Image(systemName: "photo.badge.plus")
                             }
+                            .accessibilityIdentifier("addPhotoVideoButton")
                         }
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button(action: { showingAddText = true }) {
                                 Image(systemName: "text.badge.plus")
                             }
+                            .accessibilityIdentifier("addTextButton")
                         }
                     }
             }
@@ -44,6 +47,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Items", systemImage: "list.bullet")
             }
+            .accessibilityIdentifier("itemsTab")
 
             NavigationStack {
                 SettingsView()
@@ -52,6 +56,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Settings", systemImage: "gearshape")
             }
+            .accessibilityIdentifier("settingsTab")
 
             NavigationStack {
                 TagsView()
@@ -60,6 +65,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Tags", systemImage: "number")
             }
+            .accessibilityIdentifier("tagsTab")
         }
         .onReceive(NotificationCenter.default.publisher(for: UIScene.willEnterForegroundNotification)) { _ in
             storage.loadItems()

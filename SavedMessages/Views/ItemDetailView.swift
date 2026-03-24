@@ -55,16 +55,19 @@ struct ItemDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") { dismiss() }
+                        .accessibilityIdentifier("doneButton")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingEdit = true }) {
                         Image(systemName: "pencil")
                     }
+                    .accessibilityIdentifier("editButton")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: share) {
                         Image(systemName: "square.and.arrow.up")
                     }
+                    .accessibilityIdentifier("shareButton")
                 }
             }
         }
@@ -121,6 +124,7 @@ struct EditItemView: View {
                 Section("Name") {
                     TextField(item.title, text: $customName)
                         .autocorrectionDisabled()
+                        .accessibilityIdentifier("nameTextField")
                 }
 
                 Section("Tags") {
@@ -145,11 +149,13 @@ struct EditItemView: View {
                             .autocorrectionDisabled()
                             .autocapitalization(.none)
                             .onSubmit { addTagFromInput() }
+                            .accessibilityIdentifier("tagInputField")
                         if !tagInput.trimmingCharacters(in: .whitespaces).isEmpty {
                             Button(action: addTagFromInput) {
                                 Image(systemName: "plus.circle.fill")
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("addTagButton")
                         }
                     }
 
@@ -172,6 +178,7 @@ struct EditItemView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .accessibilityIdentifier("cancelButton")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
@@ -182,6 +189,7 @@ struct EditItemView: View {
                         storage.updateItem(updated)
                         dismiss()
                     }
+                    .accessibilityIdentifier("saveButton")
                 }
             }
         }
@@ -355,12 +363,14 @@ struct QuickTagView: View {
                         .autocapitalization(.none)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { addTagFromInput() }
+                        .accessibilityIdentifier("newTagField")
                     if !tagInput.trimmingCharacters(in: .whitespaces).isEmpty {
                         Button(action: addTagFromInput) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("addTagButton")
                     }
                 }
                 .padding(.horizontal)
@@ -391,6 +401,7 @@ struct QuickTagView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
+                        .accessibilityIdentifier("cancelButton")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
@@ -400,6 +411,7 @@ struct QuickTagView: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("saveButton")
                 }
             }
         }
