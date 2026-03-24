@@ -142,8 +142,12 @@ struct AddPhotoVideoView: View {
             }
 
             if let tempURL = tempURL {
-                storage.addFileItem(from: tempURL, mimeType: mimeType)
-                try? FileManager.default.removeItem(at: tempURL)
+                let addedItem = storage.addFileItem(from: tempURL, mimeType: mimeType)
+                if addedItem != nil {
+                    try? FileManager.default.removeItem(at: tempURL)
+                } else {
+                    loadFailedCount += 1
+                }
             } else {
                 loadFailedCount += 1
             }
