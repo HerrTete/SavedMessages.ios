@@ -15,6 +15,8 @@
 		<string>iCloud.com.HerrTete.SavedMessages</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
-	<array/>
+	<array>
+		<string>group.com.HerrTete.SavedMessagesGroup</string>
+	</array>
 </dict>
 </plist>
