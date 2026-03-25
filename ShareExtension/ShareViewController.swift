@@ -167,8 +167,6 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
     private let locationTimeout: TimeInterval = 5.0
 
-    private var finishCalled = false
-
     private func processSharedItems() {
         sourceAppTag = resolveSourceAppName()
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
