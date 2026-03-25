@@ -357,6 +357,145 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["CustomTag"].waitForExistence(timeout: 2))
     }
 
+    // MARK: - Share Sheet Features
+
+    func testShareButtonVisibleInDetailView() {
+        addTextItem("Share visible test")
+
+        app.staticTexts["Share visible test"].tap()
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2), "Share button should be visible in detail view")
+        app.buttons["doneButton"].tap()
+    }
+
+    func testShareTextItemOpensShareSheet() {
+        addTextItem("Share text detail")
+
+        app.staticTexts["Share text detail"].tap()
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2))
+        app.buttons["shareButton"].tap()
+
+        XCTAssertTrue(waitForShareSheet(), "Share sheet should appear for text item")
+    }
+
+    func testDismissShareSheetReturnsToDetailView() {
+        addTextItem("Dismiss from detail")
+
+        app.staticTexts["Dismiss from detail"].tap()
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2))
+        app.buttons["shareButton"].tap()
+
+        XCTAssertTrue(waitForShareSheet(), "Share sheet should appear")
+        dismissShareSheet()
+
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 3), "Should return to detail view after dismissing share sheet")
+        XCTAssertTrue(app.buttons["shareButton"].exists, "Share button should still be visible")
+        app.buttons["doneButton"].tap()
+    }
+
+    func testShareFromContextMenu() {
+        addTextItem("Context menu share")
+
+        let itemText = app.staticTexts["Context menu share"]
+        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+
+        itemText.press(forDuration: 1.0)
+
+        let shareButton = app.buttons["Share"]
+        XCTAssertTrue(shareButton.waitForExistence(timeout: 2), "Context menu should have Share option")
+        shareButton.tap()
+
+        XCTAssertTrue(waitForShareSheet(), "Share sheet should appear from context menu")
+    }
+
+    func testDismissShareSheetFromContextMenuReturnsList() {
+        addTextItem("Context dismiss")
+
+        let itemText = app.staticTexts["Context dismiss"]
+        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+
+        itemText.press(forDuration: 1.0)
+        app.buttons["Share"].tap()
+
+        XCTAssertTrue(waitForShareSheet())
+        dismissShareSheet()
+
+        XCTAssertTrue(app.navigationBars["SavedMessages"].waitForExistence(timeout: 3), "Should return to items list after dismissing share sheet")
+    }
+
+    func testShareURLItemFromContextMenu() {
+        addTextItem("https://example.com/share")
+
+        let itemText = app.staticTexts["https://example.com/share"]
+        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+
+        // URL items open browser on tap, so use context menu to share
+        itemText.press(forDuration: 1.0)
+
+        let shareButton = app.buttons["Share"]
+        XCTAssertTrue(shareButton.waitForExistence(timeout: 2))
+        shareButton.tap()
+
+        XCTAssertTrue(waitForShareSheet(), "Share sheet should appear for URL item via context menu")
+    }
+
+    func testShareMultipleItemsSequentially() {
+        addTextItem("First share item")
+        addTextItem("Second share item")
+
+        // Share first item from detail view
+        app.staticTexts["First share item"].tap()
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2))
+        app.buttons["shareButton"].tap()
+        XCTAssertTrue(waitForShareSheet())
+        dismissShareSheet()
+        XCTAssertTrue(app.buttons["doneButton"].waitForExistence(timeout: 3))
+        app.buttons["doneButton"].tap()
+
+        // Share second item from detail view
+        XCTAssertTrue(app.staticTexts["Second share item"].waitForExistence(timeout: 2))
+        app.staticTexts["Second share item"].tap()
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2))
+        app.buttons["shareButton"].tap()
+        XCTAssertTrue(waitForShareSheet(), "Share sheet should work for second item too")
+    }
+
+    func testShareAfterEditingItem() {
+        addTextItem("Pre-edit share")
+
+        app.staticTexts["Pre-edit share"].tap()
+
+        XCTAssertTrue(app.buttons["editButton"].waitForExistence(timeout: 2))
+        app.buttons["editButton"].tap()
+
+        XCTAssertTrue(app.navigationBars["Edit"].waitForExistence(timeout: 2))
+        let nameField = app.textFields["nameTextField"]
+        nameField.tap()
+        nameField.clearAndTypeText("Post-edit share")
+        app.buttons["saveButton"].tap()
+
+        // Back in detail view — share the edited item
+        XCTAssertTrue(app.buttons["shareButton"].waitForExistence(timeout: 2))
+        app.buttons["shareButton"].tap()
+
+        XCTAssertTrue(waitForShareSheet(), "Share should still work after editing item")
+    }
+
+    func testContextMenuShowsShareOption() {
+        addTextItem("Context menu check")
+
+        let itemText = app.staticTexts["Context menu check"]
+        XCTAssertTrue(itemText.waitForExistence(timeout: 2))
+
+        itemText.press(forDuration: 1.0)
+
+        XCTAssertTrue(app.buttons["Share"].waitForExistence(timeout: 2), "Share should appear in context menu")
+        XCTAssertTrue(app.buttons["Manage Tags"].exists, "Manage Tags should appear in context menu")
+        XCTAssertTrue(app.buttons["Delete"].exists, "Delete should appear in context menu")
+
+        // Dismiss context menu by tapping outside
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+    }
+
     // MARK: - Text Detail Content
 
     func testTextItemDetailShowsContent() {
@@ -381,7 +520,27 @@ final class SavedMessagesUITests: XCTestCase {
         XCTAssertTrue(itemText.exists)
     }
 
-    // MARK: - Helpers
+    // MARK: - Share Sheet Helpers
+
+    /// Waits for the system share sheet (UIActivityViewController) to appear.
+    private func waitForShareSheet() -> Bool {
+        let activityListView = app.otherElements["ActivityListView"]
+        return activityListView.waitForExistence(timeout: 5)
+    }
+
+    /// Dismisses the system share sheet by tapping Close.
+    private func dismissShareSheet() {
+        let closeButton = app.navigationBars.buttons["Close"]
+        if closeButton.waitForExistence(timeout: 2) {
+            closeButton.tap()
+        } else if app.buttons["Close"].firstMatch.waitForExistence(timeout: 2) {
+            app.buttons["Close"].firstMatch.tap()
+        }
+        // Wait for share sheet to fully dismiss
+        let activityListView = app.otherElements["ActivityListView"]
+        let dismissed = activityListView.waitForNonExistence(timeout: 3)
+        XCTAssertTrue(dismissed, "Share sheet should be dismissed")
+    }
 
     /// Adds a text item via the Add Text sheet.
     private func addTextItem(_ text: String) {
