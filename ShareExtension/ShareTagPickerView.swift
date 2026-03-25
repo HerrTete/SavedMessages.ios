@@ -34,23 +34,7 @@ struct ShareTagPickerView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(allDisplayTags, id: \.self) { tag in
-                            Button {
-                                if selectedTags.contains(tag) {
-                                    selectedTags.remove(tag)
-                                } else {
-                                    selectedTags.insert(tag)
-                                }
-                            } label: {
-                                HStack {
-                                    Text(tag)
-                                        .foregroundStyle(.primary)
-                                    Spacer()
-                                    if selectedTags.contains(tag) {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(.accentColor)
-                                    }
-                                }
-                            }
+                            tagRow(tag: tag)
                         }
                     }
                 }
@@ -64,6 +48,27 @@ struct ShareTagPickerView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { onSave(selectedTags) }
                         .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tagRow(tag: String) -> some View {
+        Button {
+            if selectedTags.contains(tag) {
+                selectedTags.remove(tag)
+            } else {
+                selectedTags.insert(tag)
+            }
+        } label: {
+            HStack {
+                Text(tag)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if selectedTags.contains(tag) {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.accentColor)
                 }
             }
         }

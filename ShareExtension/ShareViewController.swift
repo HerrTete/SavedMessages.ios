@@ -189,7 +189,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         group.notify(queue: .main) {
             // Schedule a 5-second timeout so we always proceed even if location never arrives.
             let timeoutItem = DispatchWorkItem { [weak self] in self?.showTagPickerIfNeeded() }
-            DispatchQueue.main.asyncAfter(deadline: .now() + locationTimeout, execute: timeoutItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + self.locationTimeout, execute: timeoutItem)
             // Show tag picker as soon as location result is available (or immediately if already done).
             self.locationGroup.notify(queue: .main) { [weak self] in
                 timeoutItem.cancel()
