@@ -182,6 +182,17 @@ class StorageService: ObservableObject {
         saveItems()
     }
 
+    func deleteItems(ids: Set<String>) {
+        let toDelete = items.filter { ids.contains($0.id) }
+        for item in toDelete {
+            if let fileName = item.fileName, let filesURL = StorageConstants.filesURL {
+                try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
+            }
+        }
+        items.removeAll { ids.contains($0.id) }
+        saveItems()
+    }
+
     private func syncToiCloud() {
         DispatchQueue.global(qos: .background).async {
             guard let iCloudURL = self.iCloudURL else { return }
