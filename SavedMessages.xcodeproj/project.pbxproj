@@ -28,6 +28,7 @@
 		FB2FBCDC2E8143D882036336 /* ItemListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8384B23AA4614AE3BDC44377 /* ItemListView.swift */; };
 		FEA97F23E56A415AA64164A5 /* DataItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279CD837FE7C49C4A6CC9C29 /* DataItem.swift */; };
 		FF6A7B8C9D0E1F2A3B4C5D6E /* ItemTypeHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */; };
+		11AA22BB33CC44DD55EE66FF /* ShareTagPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BB33CC44DD55EE66FF77AA /* ShareTagPickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,6 +87,7 @@
 		F4BE476410A54BEF8AF3AEE2 /* SavedMessages.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SavedMessages.entitlements; sourceTree = "<group>"; };
 		F7493DC227CC4FC595497A0F /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		FA50B3647E714E6BAA92CFF9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		22BB33CC44DD55EE66FF77AA /* ShareTagPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareTagPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,6 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				8EB876AF5FDC488EAC718802 /* ShareViewController.swift */,
+				22BB33CC44DD55EE66FF77AA /* ShareTagPickerView.swift */,
 				AC3F05E201314119BD834C37 /* Info.plist */,
 				F7493DC227CC4FC595497A0F /* ShareExtension.entitlements */,
 			);
@@ -358,6 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A91F2892C87D47EE982F52DA /* ShareViewController.swift in Sources */,
+				11AA22BB33CC44DD55EE66FF /* ShareTagPickerView.swift in Sources */,
 				AA7B8C9D0E1F2A3B4C5D6E7F /* DataItem.swift in Sources */,
 				DD4E5F6A7B8C9D0E1F2A3B4C /* StorageConstants.swift in Sources */,
 				FF6A7B8C9D0E1F2A3B4C5D6E /* ItemTypeHelpers.swift in Sources */,
