@@ -103,15 +103,15 @@ class StorageService: ObservableObject {
         syncToiCloud()
     }
 
-    func addTextItem(text: String, sourceApp: String? = nil) {
+    func addTextItem(text: String, sourceApp: String? = nil, location: String? = nil) {
         let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
-        let item = DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text, sourceApp: sourceApp)
+        let item = DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text, sourceApp: sourceApp, location: location)
         items.insert(item, at: 0)
         saveItems()
     }
 
     @discardableResult
-    func addFileItem(data: Data, fileName: String, mimeType: String, sourceApp: String? = nil) -> DataItem? {
+    func addFileItem(data: Data, fileName: String, mimeType: String, sourceApp: String? = nil, location: String? = nil) -> DataItem? {
         guard let filesURL = StorageConstants.filesURL else { return nil }
         let ext = URL(fileURLWithPath: fileName).pathExtension
         let uniqueName = UUID().uuidString + (ext.isEmpty ? "" : ".\(ext)")
@@ -122,14 +122,14 @@ class StorageService: ObservableObject {
             return nil
         }
         let type = DataItemType(mimeType: mimeType, fileName: fileName)
-        let item = DataItem(type: type, title: fileName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
+        let item = DataItem(type: type, title: fileName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp, location: location)
         items.insert(item, at: 0)
         saveItems()
         return item
     }
 
     @discardableResult
-    func addFileItem(from sourceURL: URL, mimeType: String, sourceApp: String? = nil) async -> DataItem? {
+    func addFileItem(from sourceURL: URL, mimeType: String, sourceApp: String? = nil, location: String? = nil) async -> DataItem? {
         guard let filesURL = StorageConstants.filesURL else { return nil }
         let ext = sourceURL.pathExtension
         let uniqueName = UUID().uuidString + (ext.isEmpty ? "" : ".\(ext)")
@@ -150,7 +150,7 @@ class StorageService: ObservableObject {
 
         let originalName = sourceURL.lastPathComponent
         let type = DataItemType(mimeType: mimeType, fileName: originalName)
-        let item = DataItem(type: type, title: originalName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp)
+        let item = DataItem(type: type, title: originalName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp, location: location)
 
         await MainActor.run {
             self.items.insert(item, at: 0)
@@ -179,6 +179,17 @@ class StorageService: ObservableObject {
             try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
         }
         items.removeAll { $0.id == item.id }
+        saveItems()
+    }
+
+    func deleteItems(ids: Set<String>) {
+        let toDelete = items.filter { ids.contains($0.id) }
+        for item in toDelete {
+            if let fileName = item.fileName, let filesURL = StorageConstants.filesURL {
+                try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
+            }
+        }
+        items.removeAll { ids.contains($0.id) }
         saveItems()
     }
 

@@ -43,6 +43,8 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>SavedMessages records your current location when you save an item so it can be shown in the overview.</string>
     <key>NSCameraUsageDescription</key>
     <string>SavedMessages needs camera access to capture photos and videos.</string>
     <key>NSMicrophoneUsageDescription</key>
@@ -53,5 +55,7 @@
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 </dict>
 </plist>

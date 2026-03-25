@@ -1,8 +1,9 @@
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+import CoreLocation
 
-class ShareViewController: UIViewController {
+class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
     // MARK: - Pending items (collected from all providers, saved once at the end)
 
@@ -14,6 +15,13 @@ class ShareViewController: UIViewController {
     private static let bundleIDSkipTokens: Set<String> = [
         "com", "net", "org", "io", "app", "ios", "co", "de", "uk", "eu", "gov", "edu", "main"
     ]
+
+    // MARK: - Location
+
+    private var locationManager: CLLocationManager?
+    private let geocoder = CLGeocoder()
+    private var currentLocationString: String?
+    private let locationGroup = DispatchGroup()
 
     // MARK: - HUD UI
 
@@ -27,6 +35,7 @@ class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupHUD()
+        setupLocation()
         processSharedItems()
     }
 
@@ -103,7 +112,60 @@ class ShareViewController: UIViewController {
         }
     }
 
+    // MARK: - Location
+
+    private func setupLocation() {
+        let mgr = CLLocationManager()
+        mgr.delegate = self
+        mgr.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager = mgr
+        locationGroup.enter()
+        // locationManagerDidChangeAuthorization fires shortly after delegate is set
+        // and handles all authorization states; requestWhenInUseAuthorization triggers
+        // the dialog when status is .notDetermined.
+        mgr.requestWhenInUseAuthorization()
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.requestLocation()
+        case .denied, .restricted:
+            locationGroup.leave()
+        case .notDetermined:
+            break
+        @unknown default:
+            locationGroup.leave()
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else {
+            locationGroup.leave()
+            return
+        }
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
+            // Geocoding errors are intentionally ignored; location is a best-effort feature.
+            if let placemark = placemarks?.first {
+                var parts: [String] = []
+                if let locality = placemark.locality { parts.append(locality) }
+                if let adminArea = placemark.administrativeArea { parts.append(adminArea) }
+                if let country = placemark.country { parts.append(country) }
+                if !parts.isEmpty {
+                    self?.currentLocationString = parts.joined(separator: ", ")
+                }
+            }
+            self?.locationGroup.leave()
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        locationGroup.leave()
+    }
+
     // MARK: - Processing
+
+    private let locationTimeout: TimeInterval = 5.0
 
     private func processSharedItems() {
         sourceAppTag = resolveSourceAppName()
@@ -125,17 +187,32 @@ class ShareViewController: UIViewController {
         }
 
         group.notify(queue: .main) {
-            self.itemsLock.lock()
-            let collected = self.pendingItems.count
-            self.itemsLock.unlock()
-
-            guard collected > 0 else {
-                self.showResult(success: false, count: 0)
-                return
+            // Schedule a 5-second timeout so we always proceed even if location never arrives.
+            let timeoutItem = DispatchWorkItem { [weak self] in self?.showTagPickerIfNeeded() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + locationTimeout, execute: timeoutItem)
+            // Show tag picker as soon as location result is available (or immediately if already done).
+            self.locationGroup.notify(queue: .main) { [weak self] in
+                timeoutItem.cancel()
+                self?.showTagPickerIfNeeded()
             }
-
-            self.showTagPicker()
         }
+    }
+
+    private var tagPickerShown = false
+
+    private func showTagPickerIfNeeded() {
+        guard !tagPickerShown else { return }
+        tagPickerShown = true
+        itemsLock.lock()
+        let collected = pendingItems.count
+        itemsLock.unlock()
+
+        guard collected > 0 else {
+            showResult(success: false, count: 0)
+            return
+        }
+
+        showTagPicker()
     }
 
     // MARK: - Tag picker
@@ -388,7 +465,11 @@ class ShareViewController: UIViewController {
             }
 
             self.itemsLock.lock()
-            let newItems = self.pendingItems
+            let newItems = self.pendingItems.map { item -> DataItem in
+                var updated = item
+                updated.location = self.currentLocationString
+                return updated
+            }
             self.itemsLock.unlock()
 
             guard !newItems.isEmpty else { return }

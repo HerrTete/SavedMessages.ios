@@ -15,11 +15,13 @@ struct DataItem: Identifiable, Codable {
     var mimeType: String?
     var createdAt: TimeInterval
     var sourceApp: String?
+    var location: String?
 
     init(id: String = UUID().uuidString, type: DataItemType, title: String,
          customName: String? = nil, tags: [String] = [],
          textContent: String? = nil, fileName: String? = nil, mimeType: String? = nil,
-         createdAt: TimeInterval = Date().timeIntervalSince1970, sourceApp: String? = nil) {
+         createdAt: TimeInterval = Date().timeIntervalSince1970, sourceApp: String? = nil,
+         location: String? = nil) {
         self.id = id
         self.type = type
         self.title = title
@@ -30,6 +32,7 @@ struct DataItem: Identifiable, Codable {
         self.mimeType = mimeType
         self.createdAt = createdAt
         self.sourceApp = sourceApp
+        self.location = location
     }
 
     var displayName: String { customName.flatMap { $0.isEmpty ? nil : $0 } ?? title }
