@@ -8,6 +8,8 @@ struct ItemListView: View {
     @State private var tagItem: DataItem?
     @State private var showingShareSheet = false
     @State private var shareItems: [Any] = []
+    @State private var isSelecting = false
+    @State private var selectedIDs: Set<String> = []
 
     private var displayedItems: [DataItem] {
         if let tag = filterTag {
@@ -19,47 +21,94 @@ struct ItemListView: View {
     var body: some View {
         List {
             ForEach(displayedItems) { item in
-                ItemRowView(item: item)
+                ItemRowView(item: item, isSelecting: isSelecting, isSelected: selectedIDs.contains(item.id))
                     .accessibilityIdentifier("itemRow_\(item.id)")
+                    .contentShape(Rectangle())
                     .onTapGesture {
-                        if let url = item.url {
+                        if isSelecting {
+                            toggleSelection(item)
+                        } else if let url = item.url {
                             UIApplication.shared.open(url)
                         } else {
                             selectedItem = item
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        Button {
-                            tagItem = item
-                        } label: {
-                            Label("Tags", systemImage: "tag")
+                        if !isSelecting {
+                            Button {
+                                tagItem = item
+                            } label: {
+                                Label("Tags", systemImage: "tag")
+                            }
+                            .tint(.blue)
                         }
-                        .tint(.blue)
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            storage.deleteItem(item)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+                        if !isSelecting {
+                            Button(role: .destructive) {
+                                storage.deleteItem(item)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
                     .contextMenu {
-                        Button {
-                            tagItem = item
-                        } label: {
-                            Label("Manage Tags", systemImage: "tag")
-                        }
-                        Button {
-                            prepareShare(item)
-                        } label: {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        Button(role: .destructive) {
-                            storage.deleteItem(item)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+                        if !isSelecting {
+                            Button {
+                                tagItem = item
+                            } label: {
+                                Label("Manage Tags", systemImage: "tag")
+                            }
+                            Button {
+                                prepareShare(item)
+                            } label: {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                            Button(role: .destructive) {
+                                storage.deleteItem(item)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if isSelecting {
+                    Button("Cancel") {
+                        isSelecting = false
+                        selectedIDs = []
+                    }
+                    .accessibilityIdentifier("cancelSelectButton")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if !displayedItems.isEmpty {
+                    let allSelected = selectedIDs.count == displayedItems.count
+                    Button(isSelecting ? (allSelected ? "Deselect All" : "Select All") : "Select") {
+                        if isSelecting {
+                            selectedIDs = allSelected ? [] : Set(displayedItems.map { $0.id })
+                        } else {
+                            isSelecting = true
+                            selectedIDs = []
+                        }
+                    }
+                    .accessibilityIdentifier("selectButton")
+                }
+            }
+            ToolbarItem(placement: .bottomBar) {
+                if isSelecting && !selectedIDs.isEmpty {
+                    Button(role: .destructive) {
+                        storage.deleteItems(ids: selectedIDs)
+                        isSelecting = false
+                        selectedIDs = []
+                    } label: {
+                        Label("Delete (\(selectedIDs.count))", systemImage: "trash")
+                    }
+                    .accessibilityIdentifier("deleteSelectedButton")
+                    .foregroundStyle(.red)
+                }
             }
         }
         .sheet(item: $selectedItem) { item in
@@ -84,6 +133,14 @@ struct ItemListView: View {
         }
     }
 
+    private func toggleSelection(_ item: DataItem) {
+        if selectedIDs.contains(item.id) {
+            selectedIDs.remove(item.id)
+        } else {
+            selectedIDs.insert(item.id)
+        }
+    }
+
     private func prepareShare(_ item: DataItem) {
         var items: [Any] = []
         if let text = item.textContent {
@@ -99,10 +156,18 @@ struct ItemListView: View {
 
 struct ItemRowView: View {
     let item: DataItem
+    var isSelecting: Bool = false
+    var isSelected: Bool = false
     @EnvironmentObject var storage: StorageService
 
     var body: some View {
         HStack(spacing: 12) {
+            if isSelecting {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    .animation(.easeInOut(duration: 0.15), value: isSelected)
+            }
             itemIcon
                 .frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 2) {
