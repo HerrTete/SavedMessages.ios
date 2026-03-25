@@ -82,7 +82,7 @@ Die App führt eine **One-Way-Synchronisation** (lokal → iCloud) durch:
 
 ### Share Extension
 
-Die Share Extension nutzt denselben App-Group-Container (`group.com.HerrTete.SavedMessages`) und das gleiche `DataItem`-Modell. Gemeinsamer Code befindet sich im `Shared/`-Ordner:
+Die Share Extension nutzt denselben App-Group-Container (`group.com.HerrTete.SavedMessagesGroup`) und das gleiche `DataItem`-Modell. Gemeinsamer Code befindet sich im `Shared/`-Ordner:
 
 - `Shared/DataItem.swift` — Datenmodell
 - `Shared/StorageConstants.swift` — App-Group-ID, iCloud-Container-ID, Datei-/Ordnernamen und URL-Helfer
