@@ -105,7 +105,8 @@ struct AddPhotoVideoView: View {
             }
             .fullScreenCover(isPresented: $showingCamera) {
                 CameraPickerView { data, name, mimeType in
-                    storage.addFileItem(data: data, fileName: name, mimeType: mimeType, location: LocationService.shared.currentAddress)
+                    storage.addFileItem(data: data, fileName: name, mimeType: mimeType,
+                                        location: LocationService.shared.currentAddress)
                     didCapture = true
                 }
                 .ignoresSafeArea()

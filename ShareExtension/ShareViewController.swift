@@ -1,12 +1,27 @@
+import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+import CoreLocation
 
-class ShareViewController: UIViewController {
+class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
     // MARK: - Pending items (collected from all providers, saved once at the end)
 
     private var pendingItems: [DataItem] = []
     private let itemsLock = NSLock()
+    private var sourceAppTag: String?
+
+    // Generic bundle ID segments that do not carry a meaningful app name.
+    private static let bundleIDSkipTokens: Set<String> = [
+        "com", "net", "org", "io", "app", "ios", "co", "de", "uk", "eu", "gov", "edu", "main"
+    ]
+
+    // MARK: - Location
+
+    private var locationManager: CLLocationManager?
+    private let geocoder = CLGeocoder()
+    private var currentLocationString: String?
+    private let locationGroup = DispatchGroup()
 
     // MARK: - HUD UI
 
@@ -20,7 +35,7 @@ class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupHUD()
-        LocationService.shared.start()
+        setupLocation()
         processSharedItems()
     }
 
@@ -97,9 +112,63 @@ class ShareViewController: UIViewController {
         }
     }
 
+    // MARK: - Location
+
+    private func setupLocation() {
+        let mgr = CLLocationManager()
+        mgr.delegate = self
+        mgr.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager = mgr
+        locationGroup.enter()
+        // locationManagerDidChangeAuthorization fires shortly after delegate is set
+        // and handles all authorization states; requestWhenInUseAuthorization triggers
+        // the dialog when status is .notDetermined.
+        mgr.requestWhenInUseAuthorization()
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.requestLocation()
+        case .denied, .restricted:
+            locationGroup.leave()
+        case .notDetermined:
+            break
+        @unknown default:
+            locationGroup.leave()
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else {
+            locationGroup.leave()
+            return
+        }
+        geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
+            // Geocoding errors are intentionally ignored; location is a best-effort feature.
+            if let placemark = placemarks?.first {
+                var parts: [String] = []
+                if let locality = placemark.locality { parts.append(locality) }
+                if let adminArea = placemark.administrativeArea { parts.append(adminArea) }
+                if let country = placemark.country { parts.append(country) }
+                if !parts.isEmpty {
+                    self?.currentLocationString = parts.joined(separator: ", ")
+                }
+            }
+            self?.locationGroup.leave()
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        locationGroup.leave()
+    }
+
     // MARK: - Processing
 
+    private let locationTimeout: TimeInterval = 5.0
+
     private func processSharedItems() {
+        sourceAppTag = resolveSourceAppName()
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
             showResult(success: false, count: 0)
             return
@@ -118,20 +187,81 @@ class ShareViewController: UIViewController {
         }
 
         group.notify(queue: .main) {
-            let location = LocationService.shared.currentAddress
-            self.itemsLock.lock()
-            if let location = location {
-                self.pendingItems = self.pendingItems.map { item in
-                    var updated = item
-                    updated.location = location
-                    return updated
+            // Schedule a 5-second timeout so we always proceed even if location never arrives.
+            let timeoutItem = DispatchWorkItem { [weak self] in self?.showTagPickerIfNeeded() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + locationTimeout, execute: timeoutItem)
+            // Show tag picker as soon as location result is available (or immediately if already done).
+            self.locationGroup.notify(queue: .main) { [weak self] in
+                timeoutItem.cancel()
+                self?.showTagPickerIfNeeded()
+            }
+        }
+    }
+
+    private var tagPickerShown = false
+
+    private func showTagPickerIfNeeded() {
+        guard !tagPickerShown else { return }
+        tagPickerShown = true
+        itemsLock.lock()
+        let collected = pendingItems.count
+        itemsLock.unlock()
+
+        guard collected > 0 else {
+            showResult(success: false, count: 0)
+            return
+        }
+
+        showTagPicker()
+    }
+
+    // MARK: - Tag picker
+
+    private func showTagPicker() {
+        spinner?.stopAnimating()
+        spinner?.isHidden = true
+        hudContainer.isHidden = true
+
+        let tags = loadExistingTags()
+        let tagView = ShareTagPickerView(existingTags: tags) { [weak self] selectedTags in
+            guard let self else { return }
+            self.applySelectedTags(selectedTags)
+            self.dismiss(animated: true) {
+                DispatchQueue.main.async {
+                    let success = self.commitPendingItems()
+                    self.itemsLock.lock()
+                    let count = self.pendingItems.count
+                    self.itemsLock.unlock()
+                    self.hudContainer.isHidden = false
+                    self.showResult(success: success, count: count)
                 }
             }
-            let count = self.pendingItems.count
-            self.itemsLock.unlock()
-            let success = self.commitPendingItems()
-            self.showResult(success: success && count > 0, count: count)
+        } onCancel: { [weak self] in
+            self?.dismiss(animated: true) {
+                self?.completeRequest()
+            }
         }
+
+        let hostingController = UIHostingController(rootView: tagView)
+        hostingController.isModalInPresentation = true
+        present(hostingController, animated: true)
+    }
+
+    private func applySelectedTags(_ selectedTags: Set<String>) {
+        guard !selectedTags.isEmpty else { return }
+        itemsLock.lock()
+        for i in 0..<pendingItems.count {
+            let newTags = selectedTags.filter { !pendingItems[i].tags.contains($0) }
+            pendingItems[i].tags.append(contentsOf: newTags.sorted())
+        }
+        itemsLock.unlock()
+    }
+
+    private func loadExistingTags() -> [String] {
+        guard let url = StorageConstants.itemsFileURL,
+              let data = try? Data(contentsOf: url),
+              let items = try? JSONDecoder().decode([DataItem].self, from: data) else { return [] }
+        return Array(Set(items.flatMap { $0.tags })).sorted()
     }
 
     // MARK: - Provider handling
@@ -246,6 +376,13 @@ class ShareViewController: UIViewController {
     // MARK: - Item helpers
 
     private func addPendingItem(_ item: DataItem) {
+        var item = item
+        if let appTag = sourceAppTag, !item.tags.contains(appTag) {
+            item.tags.append(appTag)
+        }
+        if item.sourceApp == nil {
+            item.sourceApp = sourceAppTag
+        }
         itemsLock.lock()
         pendingItems.append(item)
         itemsLock.unlock()
@@ -328,7 +465,11 @@ class ShareViewController: UIViewController {
             }
 
             self.itemsLock.lock()
-            let newItems = self.pendingItems
+            let newItems = self.pendingItems.map { item -> DataItem in
+                var updated = item
+                updated.location = self.currentLocationString
+                return updated
+            }
             self.itemsLock.unlock()
 
             guard !newItems.isEmpty else { return }
@@ -358,6 +499,58 @@ class ShareViewController: UIViewController {
     }
 
     // MARK: - Helpers
+
+    private func resolveSourceAppName() -> String? {
+        // `_hostBundleIdentifier` is a private KVC key on NSExtensionContext that returns
+        // the bundle ID of the host app. There is no public API equivalent on iOS.
+        // This is a widely-used pattern in share extensions and has not caused App Store
+        // rejections in practice, but the behaviour could change in future OS versions.
+        guard let bundleID = extensionContext?.value(forKeyPath: "_hostBundleIdentifier") as? String else {
+            return nil
+        }
+
+        let knownApps: [String: String] = [
+            "com.apple.mobilesafari": "Safari",
+            "com.apple.news": "News",
+            "com.apple.mobilemail": "Mail",
+            "com.apple.mobilenotes": "Notes",
+            "com.apple.reminders": "Reminders",
+            "com.apple.MobileSMS": "Messages",
+            "com.apple.mobileslideshow": "Photos",
+            "com.apple.maps": "Maps",
+            "com.apple.podcasts": "Podcasts",
+            "com.google.chrome.ios": "Chrome",
+            "com.google.Gmail": "Gmail",
+            "org.mozilla.ios.Firefox": "Firefox",
+            "com.atebits.Tweetie2": "Twitter",
+            "com.burbn.instagram": "Instagram",
+            "com.facebook.Facebook": "Facebook",
+            "com.linkedin.LinkedIn": "LinkedIn",
+            "com.reddit.Reddit": "Reddit",
+            "ph.telegra.Telegraph": "Telegram",
+            "net.whatsapp.WhatsApp": "WhatsApp",
+            "com.microsoft.Office.Outlook": "Outlook",
+            "com.tiktok.TikTok": "TikTok",
+            "com.spotify.client": "Spotify",
+            "com.snapchat.snapchat": "Snapchat",
+            "com.discord.discord": "Discord",
+            "com.slack.slack": "Slack",
+        ]
+
+        if let name = knownApps[bundleID] {
+            return name
+        }
+
+        // Fallback: derive a name from the bundle ID components
+        let components = bundleID.split(separator: ".")
+        for component in components.reversed() {
+            let token = String(component)
+            if !ShareViewController.bundleIDSkipTokens.contains(token.lowercased()) && token.count > 2 {
+                return token.prefix(1).uppercased() + String(token.dropFirst())
+            }
+        }
+        return nil
+    }
 
     private func mimeTypeForExtension(_ ext: String) -> String {
         if let utType = UTType(filenameExtension: ext) {

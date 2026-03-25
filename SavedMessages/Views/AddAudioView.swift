@@ -152,7 +152,8 @@ struct AddAudioView: View {
         guard let url = recordingURL,
               let data = try? Data(contentsOf: url) else { return }
         let name = "recording_\(Int(Date().timeIntervalSince1970)).m4a"
-        storage.addFileItem(data: data, fileName: name, mimeType: "audio/mp4", location: LocationService.shared.currentAddress)
+        storage.addFileItem(data: data, fileName: name, mimeType: "audio/mp4",
+                            location: LocationService.shared.currentAddress)
         try? FileManager.default.removeItem(at: url)
     }
 

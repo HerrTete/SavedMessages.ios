@@ -1,7 +1,7 @@
 import Foundation
 
 enum StorageConstants {
-    static let appGroupID = "group.com.HerrTete.SavedMessages"
+    static let appGroupID = "group.com.HerrTete.SavedMessagesGroup"
     static let iCloudContainerID = "iCloud.com.HerrTete.SavedMessages"
     static let itemsFileName = "items.json"
     static let filesDirectoryName = "Files"
