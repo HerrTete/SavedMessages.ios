@@ -308,7 +308,7 @@ class ShareViewController: UIViewController {
         var coordError: NSError?
         var writeSuccess = false
 
-        coordinator.coordinate(writingItemAt: url, options: [], error: &coordError) { coordinatedURL in
+        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
             if fileManager.fileExists(atPath: coordinatedURL.path) {
                 do {
                     let data = try Data(contentsOf: coordinatedURL)

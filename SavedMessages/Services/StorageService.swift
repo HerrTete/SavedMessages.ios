@@ -55,6 +55,14 @@ class StorageService: ObservableObject {
             loadedItems = try? JSONDecoder().decode([DataItem].self, from: data)
         }
 
+        if let coordError = coordError {
+            print("StorageService.loadItems coordination error: \(coordError)")
+            // Fallback to uncoordinated read when coordination fails
+            if let data = try? Data(contentsOf: url) {
+                loadedItems = try? JSONDecoder().decode([DataItem].self, from: data)
+            }
+        }
+
         if let loaded = loadedItems {
             DispatchQueue.main.async {
                 self.items = loaded.sorted { $0.createdAt > $1.createdAt }
@@ -69,8 +77,28 @@ class StorageService: ObservableObject {
         // Use NSFileCoordinator so the share extension sees the latest state
         let coordinator = NSFileCoordinator()
         var coordError: NSError?
-        coordinator.coordinate(writingItemAt: url, options: [], error: &coordError) { coordinatedURL in
-            try? data.write(to: coordinatedURL, options: .atomic)
+        var writeError: Error?
+        var didWrite = false
+
+        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
+            do {
+                try data.write(to: coordinatedURL, options: .atomic)
+                didWrite = true
+            } catch {
+                writeError = error
+            }
+        }
+
+        if let coordError = coordError {
+            print("StorageService.saveItems coordination error: \(coordError)")
+        }
+
+        if let writeError = writeError {
+            print("StorageService.saveItems write error: \(writeError)")
+        }
+
+        guard coordError == nil, didWrite else {
+            return
         }
         syncToiCloud()
     }
