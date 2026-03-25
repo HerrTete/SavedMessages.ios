@@ -47,7 +47,7 @@ class ShareViewController: UIViewController {
         iconView.isHidden = true
         hudContainer.addSubview(iconView)
 
-        statusLabel.text = "Speichern …"
+        statusLabel.text = "Saving…"
         statusLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         statusLabel.textColor = .label
         statusLabel.textAlignment = .center
@@ -83,11 +83,11 @@ class ShareViewController: UIViewController {
         if success {
             iconView.tintColor = .systemGreen
             iconView.image = UIImage(systemName: "checkmark.circle.fill", withConfiguration: symbolConfig)
-            statusLabel.text = count == 1 ? "Gespeichert" : "\(count) gespeichert"
+            statusLabel.text = count == 1 ? "Saved" : "\(count) Saved"
         } else {
             iconView.tintColor = .systemRed
             iconView.image = UIImage(systemName: "xmark.circle.fill", withConfiguration: symbolConfig)
-            statusLabel.text = "Fehler"
+            statusLabel.text = "Error"
         }
 
         let hudDismissDelay: TimeInterval = 1.2
@@ -302,31 +302,40 @@ class ShareViewController: UIViewController {
 
         var existing: [DataItem] = []
         let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: url.path) {
+
+        // Use NSFileCoordinator so the main app process sees the update
+        let coordinator = NSFileCoordinator()
+        var coordError: NSError?
+        var writeSuccess = false
+
+        coordinator.coordinate(writingItemAt: url, options: [], error: &coordError) { coordinatedURL in
+            if fileManager.fileExists(atPath: coordinatedURL.path) {
+                do {
+                    let data = try Data(contentsOf: coordinatedURL)
+                    existing = try JSONDecoder().decode([DataItem].self, from: data)
+                } catch {
+                    return
+                }
+            }
+
+            self.itemsLock.lock()
+            let newItems = self.pendingItems
+            self.itemsLock.unlock()
+
+            guard !newItems.isEmpty else { return }
+
+            existing.insert(contentsOf: newItems, at: 0)
+
+            guard let encoded = try? JSONEncoder().encode(existing) else { return }
             do {
-                let data = try Data(contentsOf: url)
-                existing = try JSONDecoder().decode([DataItem].self, from: data)
+                try encoded.write(to: coordinatedURL, options: .atomic)
+                writeSuccess = true
             } catch {
-                // Treat read/decode failures as hard failures to avoid losing existing data
-                return false
+                return
             }
         }
 
-        itemsLock.lock()
-        let newItems = pendingItems
-        itemsLock.unlock()
-
-        guard !newItems.isEmpty else { return false }
-
-        existing.insert(contentsOf: newItems, at: 0)
-
-        guard let encoded = try? JSONEncoder().encode(existing) else { return false }
-        do {
-            try encoded.write(to: url, options: .atomic)
-        } catch {
-            return false
-        }
-
+        guard coordError == nil, writeSuccess else { return false }
         notifyMainApp()
         return true
     }

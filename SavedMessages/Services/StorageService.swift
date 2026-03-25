@@ -43,8 +43,19 @@ class StorageService: ObservableObject {
     }
 
     func loadItems() {
-        guard let url = StorageConstants.itemsFileURL, let data = try? Data(contentsOf: url) else { return }
-        if let loaded = try? JSONDecoder().decode([DataItem].self, from: data) {
+        guard let url = StorageConstants.itemsFileURL else { return }
+
+        // Use NSFileCoordinator to read data written by the share extension
+        let coordinator = NSFileCoordinator()
+        var coordError: NSError?
+        var loadedItems: [DataItem]?
+
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordError) { coordinatedURL in
+            guard let data = try? Data(contentsOf: coordinatedURL) else { return }
+            loadedItems = try? JSONDecoder().decode([DataItem].self, from: data)
+        }
+
+        if let loaded = loadedItems {
             DispatchQueue.main.async {
                 self.items = loaded.sorted { $0.createdAt > $1.createdAt }
             }
@@ -54,7 +65,13 @@ class StorageService: ObservableObject {
     func saveItems() {
         guard let url = StorageConstants.itemsFileURL else { return }
         guard let data = try? JSONEncoder().encode(items) else { return }
-        try? data.write(to: url, options: .atomic)
+
+        // Use NSFileCoordinator so the share extension sees the latest state
+        let coordinator = NSFileCoordinator()
+        var coordError: NSError?
+        coordinator.coordinate(writingItemAt: url, options: [], error: &coordError) { coordinatedURL in
+            try? data.write(to: coordinatedURL, options: .atomic)
+        }
         syncToiCloud()
     }
 

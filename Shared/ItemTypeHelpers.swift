@@ -4,10 +4,10 @@ extension DataItemType {
     var defaultTag: String {
         switch self {
         case .audio: return "Audio"
-        case .image: return "Foto"
+        case .image: return "Photo"
         case .video: return "Video"
         case .text:  return "Text"
-        case .file:  return "Datei"
+        case .file:  return "File"
         }
     }
 
