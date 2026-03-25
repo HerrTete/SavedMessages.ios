@@ -83,7 +83,7 @@ class ShareViewController: UIViewController {
         if success {
             iconView.tintColor = .systemGreen
             iconView.image = UIImage(systemName: "checkmark.circle.fill", withConfiguration: symbolConfig)
-            statusLabel.text = count == 1 ? "Saved" : "\(count) Saved"
+            statusLabel.text = count == 1 ? "Saved" : "\(count) items saved"
         } else {
             iconView.tintColor = .systemRed
             iconView.image = UIImage(systemName: "xmark.circle.fill", withConfiguration: symbolConfig)
