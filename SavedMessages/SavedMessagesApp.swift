@@ -8,6 +8,7 @@ struct SavedMessagesApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(storage)
+                .onAppear { LocationService.shared.start() }
         }
     }
 }
