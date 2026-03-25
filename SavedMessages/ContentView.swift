@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var storage: StorageService
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showingAddText = false
     @State private var showingAddAudio = false
     @State private var showingAddPhotoVideo = false
@@ -67,8 +68,10 @@ struct ContentView: View {
             }
             .accessibilityIdentifier("tagsTab")
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIScene.willEnterForegroundNotification)) { _ in
-            storage.loadItems()
+        .onChange(of: scenePhase) {
+            if scenePhase == .active {
+                storage.loadItems()
+            }
         }
     }
 }
