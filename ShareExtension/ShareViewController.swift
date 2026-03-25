@@ -8,6 +8,12 @@ class ShareViewController: UIViewController {
 
     private var pendingItems: [DataItem] = []
     private let itemsLock = NSLock()
+    private var sourceAppTag: String?
+
+    // Generic bundle ID segments that do not carry a meaningful app name.
+    private static let bundleIDSkipTokens: Set<String> = [
+        "com", "net", "org", "io", "app", "ios", "co", "de", "uk", "eu", "gov", "edu", "main"
+    ]
 
     // MARK: - HUD UI
 
@@ -100,6 +106,7 @@ class ShareViewController: UIViewController {
     // MARK: - Processing
 
     private func processSharedItems() {
+        sourceAppTag = resolveSourceAppName()
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
             showResult(success: false, count: 0)
             return
@@ -292,6 +299,13 @@ class ShareViewController: UIViewController {
     // MARK: - Item helpers
 
     private func addPendingItem(_ item: DataItem) {
+        var item = item
+        if let appTag = sourceAppTag, !item.tags.contains(appTag) {
+            item.tags.append(appTag)
+        }
+        if item.sourceApp == nil {
+            item.sourceApp = sourceAppTag
+        }
         itemsLock.lock()
         pendingItems.append(item)
         itemsLock.unlock()
@@ -404,6 +418,58 @@ class ShareViewController: UIViewController {
     }
 
     // MARK: - Helpers
+
+    private func resolveSourceAppName() -> String? {
+        // `_hostBundleIdentifier` is a private KVC key on NSExtensionContext that returns
+        // the bundle ID of the host app. There is no public API equivalent on iOS.
+        // This is a widely-used pattern in share extensions and has not caused App Store
+        // rejections in practice, but the behaviour could change in future OS versions.
+        guard let bundleID = extensionContext?.value(forKeyPath: "_hostBundleIdentifier") as? String else {
+            return nil
+        }
+
+        let knownApps: [String: String] = [
+            "com.apple.mobilesafari": "Safari",
+            "com.apple.news": "News",
+            "com.apple.mobilemail": "Mail",
+            "com.apple.mobilenotes": "Notes",
+            "com.apple.reminders": "Reminders",
+            "com.apple.MobileSMS": "Messages",
+            "com.apple.mobileslideshow": "Photos",
+            "com.apple.maps": "Maps",
+            "com.apple.podcasts": "Podcasts",
+            "com.google.chrome.ios": "Chrome",
+            "com.google.Gmail": "Gmail",
+            "org.mozilla.ios.Firefox": "Firefox",
+            "com.atebits.Tweetie2": "Twitter",
+            "com.burbn.instagram": "Instagram",
+            "com.facebook.Facebook": "Facebook",
+            "com.linkedin.LinkedIn": "LinkedIn",
+            "com.reddit.Reddit": "Reddit",
+            "ph.telegra.Telegraph": "Telegram",
+            "net.whatsapp.WhatsApp": "WhatsApp",
+            "com.microsoft.Office.Outlook": "Outlook",
+            "com.tiktok.TikTok": "TikTok",
+            "com.spotify.client": "Spotify",
+            "com.snapchat.snapchat": "Snapchat",
+            "com.discord.discord": "Discord",
+            "com.slack.slack": "Slack",
+        ]
+
+        if let name = knownApps[bundleID] {
+            return name
+        }
+
+        // Fallback: derive a name from the bundle ID components
+        let components = bundleID.split(separator: ".")
+        for component in components.reversed() {
+            let token = String(component)
+            if !ShareViewController.bundleIDSkipTokens.contains(token.lowercased()) && token.count > 2 {
+                return token.prefix(1).uppercased() + String(token.dropFirst())
+            }
+        }
+        return nil
+    }
 
     private func mimeTypeForExtension(_ ext: String) -> String {
         if let utType = UTType(filenameExtension: ext) {
