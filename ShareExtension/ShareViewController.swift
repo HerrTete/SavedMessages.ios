@@ -20,6 +20,7 @@ class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupHUD()
+        LocationService.shared.start()
         processSharedItems()
     }
 
@@ -117,10 +118,18 @@ class ShareViewController: UIViewController {
         }
 
         group.notify(queue: .main) {
-            let success = self.commitPendingItems()
+            let location = LocationService.shared.currentAddress
             self.itemsLock.lock()
+            if let location = location {
+                self.pendingItems = self.pendingItems.map { item in
+                    var updated = item
+                    updated.location = location
+                    return updated
+                }
+            }
             let count = self.pendingItems.count
             self.itemsLock.unlock()
+            let success = self.commitPendingItems()
             self.showResult(success: success && count > 0, count: count)
         }
     }

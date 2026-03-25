@@ -105,7 +105,7 @@ struct AddPhotoVideoView: View {
             }
             .fullScreenCover(isPresented: $showingCamera) {
                 CameraPickerView { data, name, mimeType in
-                    storage.addFileItem(data: data, fileName: name, mimeType: mimeType)
+                    storage.addFileItem(data: data, fileName: name, mimeType: mimeType, location: LocationService.shared.currentAddress)
                     didCapture = true
                 }
                 .ignoresSafeArea()
@@ -116,12 +116,16 @@ struct AddPhotoVideoView: View {
                 }
             }
         }
+        .onAppear {
+            LocationService.shared.start()
+        }
     }
 
     @MainActor
     private func saveSelectedItems() async {
         isProcessing = true
         loadFailedCount = 0
+        let location = LocationService.shared.currentAddress
         for pickerItem in selectedItems {
             let contentType = pickerItem.supportedContentTypes.first
             let mimeType = contentType?.preferredMIMEType ?? "application/octet-stream"
@@ -130,7 +134,7 @@ struct AddPhotoVideoView: View {
 
             // Try direct Data loading first (reliable for images)
             if let data = try? await pickerItem.loadTransferable(type: Data.self) {
-                storage.addFileItem(data: data, fileName: name, mimeType: mimeType)
+                storage.addFileItem(data: data, fileName: name, mimeType: mimeType, location: location)
                 continue
             }
 
@@ -138,7 +142,7 @@ struct AddPhotoVideoView: View {
             // media (especially videos) are streamed from disk rather than
             // loaded into memory as raw Data.
             if let mediaFile = try? await pickerItem.loadTransferable(type: MediaFile.self) {
-                let addedItem = await storage.addFileItem(from: mediaFile.url, mimeType: mimeType)
+                let addedItem = await storage.addFileItem(from: mediaFile.url, mimeType: mimeType, location: location)
                 if addedItem != nil {
                     try? FileManager.default.removeItem(at: mediaFile.url)
                 } else {

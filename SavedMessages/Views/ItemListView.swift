@@ -192,6 +192,15 @@ struct ItemRowView: View {
                 Text(item.createdDate, format: .dateTime)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let location = item.location {
+                    HStack(spacing: 4) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .font(.caption2)
+                        Text(location)
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
+                }
             }
             Spacer()
         }
