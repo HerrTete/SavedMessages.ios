@@ -20,7 +20,7 @@ struct AddTextView: View {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Save") {
                             if !text.isEmpty {
-                                storage.addTextItem(text: text)
+                                storage.addTextItem(text: text, location: LocationService.shared.currentAddress)
                             }
                             dismiss()
                         }
@@ -28,6 +28,9 @@ struct AddTextView: View {
                         .accessibilityIdentifier("saveButton")
                     }
                 }
+        }
+        .onAppear {
+            LocationService.shared.start()
         }
     }
 }

@@ -49,6 +49,8 @@
     <string>SavedMessages needs microphone access to record audio clips.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>SavedMessages needs photo library access to import photos and videos.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>SavedMessages captures your current location when saving items so you can remember where they were saved.</string>
     <key>UIFileSharingEnabled</key>
     <true/>
     <key>LSSupportsOpeningDocumentsInPlace</key>
