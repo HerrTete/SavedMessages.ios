@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
@@ -117,12 +118,66 @@ class ShareViewController: UIViewController {
         }
 
         group.notify(queue: .main) {
-            let success = self.commitPendingItems()
             self.itemsLock.lock()
-            let count = self.pendingItems.count
+            let collected = self.pendingItems.count
             self.itemsLock.unlock()
-            self.showResult(success: success && count > 0, count: count)
+
+            guard collected > 0 else {
+                self.showResult(success: false, count: 0)
+                return
+            }
+
+            self.showTagPicker()
         }
+    }
+
+    // MARK: - Tag picker
+
+    private func showTagPicker() {
+        spinner?.stopAnimating()
+        spinner?.isHidden = true
+        hudContainer.isHidden = true
+
+        let tags = loadExistingTags()
+        let tagView = ShareTagPickerView(existingTags: tags) { [weak self] selectedTags in
+            guard let self else { return }
+            self.applySelectedTags(selectedTags)
+            self.dismiss(animated: true) {
+                DispatchQueue.main.async {
+                    let success = self.commitPendingItems()
+                    self.itemsLock.lock()
+                    let count = self.pendingItems.count
+                    self.itemsLock.unlock()
+                    self.hudContainer.isHidden = false
+                    self.showResult(success: success, count: count)
+                }
+            }
+        } onCancel: { [weak self] in
+            self?.dismiss(animated: true) {
+                self?.completeRequest()
+            }
+        }
+
+        let hostingController = UIHostingController(rootView: tagView)
+        hostingController.isModalInPresentation = true
+        present(hostingController, animated: true)
+    }
+
+    private func applySelectedTags(_ selectedTags: Set<String>) {
+        guard !selectedTags.isEmpty else { return }
+        itemsLock.lock()
+        for i in 0..<pendingItems.count {
+            let newTags = selectedTags.filter { !pendingItems[i].tags.contains($0) }
+            pendingItems[i].tags.append(contentsOf: newTags.sorted())
+        }
+        itemsLock.unlock()
+    }
+
+    private func loadExistingTags() -> [String] {
+        guard let url = StorageConstants.itemsFileURL,
+              let data = try? Data(contentsOf: url),
+              let items = try? JSONDecoder().decode([DataItem].self, from: data) else { return [] }
+        return Array(Set(items.flatMap { $0.tags })).sorted()
     }
 
     // MARK: - Provider handling
