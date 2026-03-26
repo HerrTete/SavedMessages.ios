@@ -176,6 +176,7 @@ struct EditItemView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
+                        addTagFromInput()
                         let trimmed = customName.trimmingCharacters(in: .whitespaces)
                         var updated = item
                         updated.customName = trimmed.isEmpty ? nil : trimmed
@@ -399,6 +400,7 @@ struct QuickTagView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
+                        addTagFromInput()
                         var updated = item
                         updated.tags = tags
                         storage.updateItem(updated)
