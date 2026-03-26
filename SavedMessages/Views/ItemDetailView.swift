@@ -204,10 +204,7 @@ struct ImageDetailView: View {
 
     var body: some View {
         if let url = storage.fileURL(for: item), let image = UIImage(contentsOfFile: url.path) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ZoomableImageView(image: image)
         } else {
             ContentUnavailableView("Image not found", systemImage: "photo.slash")
         }

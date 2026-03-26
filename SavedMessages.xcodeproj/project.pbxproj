@@ -27,6 +27,7 @@
 		E9863949B85444A68DC63FBC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C26471B674D4168A3C92330 /* Assets.xcassets */; };
 		EE5F6A7B8C9D0E1F2A3B4C5D /* ItemTypeHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */; };
 		F1F8D98E94FE49A7A0225856 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA50B3647E714E6BAA92CFF9 /* ContentView.swift */; };
+		FA11BB22CC33DD44EE55FF66 /* ZoomableImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB22CC33DD44EE55FF667788 /* ZoomableImageView.swift */; };
 		FB2FBCDC2E8143D882036336 /* ItemListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8384B23AA4614AE3BDC44377 /* ItemListView.swift */; };
 		FEA97F23E56A415AA64164A5 /* DataItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279CD837FE7C49C4A6CC9C29 /* DataItem.swift */; };
 		FF6A7B8C9D0E1F2A3B4C5D6E /* ItemTypeHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */; };
@@ -90,6 +91,7 @@
 		F4BE476410A54BEF8AF3AEE2 /* SavedMessages.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SavedMessages.entitlements; sourceTree = "<group>"; };
 		F7493DC227CC4FC595497A0F /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		FA50B3647E714E6BAA92CFF9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AB22CC33DD44EE55FF667788 /* ZoomableImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageView.swift; sourceTree = "<group>"; };
 		22BB33CC44DD55EE66FF77AA /* ShareTagPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareTagPickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -165,6 +167,7 @@
 				ABEA5C8708FF4A21A5E013B4 /* CameraPickerView.swift */,
 				C2D3E4F5A6B7C8D9E0F1A2B3 /* TagsView.swift */,
 				D3A4B5C6D7E8F9A0B1C2D3E4 /* SettingsView.swift */,
+				AB22CC33DD44EE55FF667788 /* ZoomableImageView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -358,6 +361,7 @@
 				5A2AA24D4A2A4059A22BC7C2 /* StorageService.swift in Sources */,
 				B1C2D3E4F5A6B7C8D9E0F1A2 /* TagsView.swift in Sources */,
 				E4B5C6D7E8F9A0B1C2D3E4F5 /* SettingsView.swift in Sources */,
+				FA11BB22CC33DD44EE55FF66 /* ZoomableImageView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
