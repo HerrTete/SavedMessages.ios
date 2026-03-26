@@ -9,6 +9,7 @@ class StorageService: ObservableObject {
     private var deletedIDs: Set<String> = []
     private var isSyncing = false
     private var metadataQuery: NSMetadataQuery?
+    private static let syncDebounceDelay: TimeInterval = 2
 
     private var iCloudURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: StorageConstants.iCloudContainerID)?
@@ -244,10 +245,13 @@ class StorageService: ObservableObject {
     // MARK: - Deleted IDs Tracking
 
     private func loadDeletedIDs() {
-        guard let url = StorageConstants.deletedIDsFileURL,
-              let data = try? Data(contentsOf: url),
-              let ids = try? JSONDecoder().decode(Set<String>.self, from: data) else { return }
-        deletedIDs = ids
+        guard let url = StorageConstants.deletedIDsFileURL else { return }
+        guard let data = try? Data(contentsOf: url) else { return }
+        do {
+            deletedIDs = try JSONDecoder().decode(Set<String>.self, from: data)
+        } catch {
+            print("StorageService.loadDeletedIDs decode error: \(error)")
+        }
     }
 
     private func saveDeletedIDs() {
@@ -325,7 +329,7 @@ class StorageService: ObservableObject {
 
                 // Delay resetting isSyncing to prevent re-entrant sync
                 // triggered by NSMetadataQuery detecting our own upload
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + StorageService.syncDebounceDelay) {
                     self.isSyncing = false
                 }
             }

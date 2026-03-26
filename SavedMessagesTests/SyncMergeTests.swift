@@ -52,6 +52,10 @@ final class SyncMergeTests: XCTestCase {
         XCTAssertEqual(result[0].title, "Newer")
     }
 
+    // When both sides have the same effectiveModifiedAt, the local item is
+    // preserved because local items are inserted first into the merge dictionary
+    // and remote items only overwrite when strictly newer. This avoids
+    // unnecessary overwrites and keeps the merge deterministic.
     func testEqualTimestampsPreservesLocalItem() {
         let local = [DataItem(id: "x", type: .text, title: "Local", tags: ["Text"], createdAt: 100)]
         let remote = [DataItem(id: "x", type: .text, title: "Remote", tags: ["Text"], createdAt: 100)]
