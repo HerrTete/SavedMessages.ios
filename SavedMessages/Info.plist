@@ -43,14 +43,12 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>SavedMessages records your current location when you save an item so it can be shown in the overview.</string>
     <key>NSCameraUsageDescription</key>
-    <string>SavedMessages needs camera access to capture photos and videos.</string>
+    <string>SavedMessages uses the camera to let you take a photo or record a video and save it directly as a new message — for example, snapping a picture of a whiteboard note to keep for later.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>SavedMessages needs microphone access to record audio clips.</string>
+    <string>SavedMessages uses the microphone to let you record voice memos and save them as messages — for example, recording a quick reminder to yourself while on the go.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>SavedMessages needs photo library access to import photos and videos.</string>
+    <string>SavedMessages accesses your photo library so you can pick existing photos or videos and save them as messages — for example, selecting a screenshot to keep for reference.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>SavedMessages captures your current location when saving items so you can remember where they were saved.</string>
     <key>UIFileSharingEnabled</key>

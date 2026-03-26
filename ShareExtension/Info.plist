@@ -20,8 +20,6 @@
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>SavedMessages records your current location when you save an item so it can be shown in the overview.</string>
     <key>NSExtension</key>
     <dict>
         <key>NSExtensionAttributes</key>
