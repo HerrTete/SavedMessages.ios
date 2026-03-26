@@ -46,7 +46,10 @@ struct ShareTagPickerView: View {
                     Button("Cancel") { onCancel() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSave(selectedTags) }
+                    Button("Save") {
+                        addNewTag()
+                        onSave(selectedTags)
+                    }
                         .fontWeight(.semibold)
                 }
             }
