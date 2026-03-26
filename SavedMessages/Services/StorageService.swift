@@ -104,8 +104,11 @@ class StorageService: ObservableObject {
     }
 
     func addTextItem(text: String, sourceApp: String? = nil, location: String? = nil) {
-        let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
-        let item = DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text, sourceApp: sourceApp, location: location)
+        var tags = [isURLString(text) ? "URL" : DataItemType.text.defaultTag]
+        if let appTag = sourceApp, !tags.contains(appTag) {
+            tags.append(appTag)
+        }
+        let item = DataItem(type: .text, title: String(text.prefix(50)), tags: tags, textContent: text, sourceApp: sourceApp, location: location)
         items.insert(item, at: 0)
         saveItems()
     }
@@ -122,7 +125,11 @@ class StorageService: ObservableObject {
             return nil
         }
         let type = DataItemType(mimeType: mimeType, fileName: fileName)
-        let item = DataItem(type: type, title: fileName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp, location: location)
+        var tags = [type.defaultTag]
+        if let appTag = sourceApp, !tags.contains(appTag) {
+            tags.append(appTag)
+        }
+        let item = DataItem(type: type, title: fileName, tags: tags, fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp, location: location)
         items.insert(item, at: 0)
         saveItems()
         return item
@@ -150,7 +157,11 @@ class StorageService: ObservableObject {
 
         let originalName = sourceURL.lastPathComponent
         let type = DataItemType(mimeType: mimeType, fileName: originalName)
-        let item = DataItem(type: type, title: originalName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp, location: location)
+        var tags = [type.defaultTag]
+        if let appTag = sourceApp, !tags.contains(appTag) {
+            tags.append(appTag)
+        }
+        let item = DataItem(type: type, title: originalName, tags: tags, fileName: uniqueName, mimeType: mimeType, sourceApp: sourceApp, location: location)
 
         await MainActor.run {
             self.items.insert(item, at: 0)
