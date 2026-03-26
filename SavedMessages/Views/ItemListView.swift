@@ -97,15 +97,18 @@ struct ItemListView: View {
             }
             ToolbarItem(placement: .bottomBar) {
                 if isSelecting && !selectedIDs.isEmpty {
-                    Button(role: .destructive) {
-                        storage.deleteItems(ids: selectedIDs)
-                        isSelecting = false
-                        selectedIDs = []
-                    } label: {
-                        Label("Delete (\(selectedIDs.count))", systemImage: "trash")
+                    HStack {
+                        Spacer()
+                        Button(role: .destructive) {
+                            storage.deleteItems(ids: selectedIDs)
+                            isSelecting = false
+                            selectedIDs = []
+                        } label: {
+                            Label("Delete (\(selectedIDs.count))", systemImage: "trash")
+                        }
+                        .accessibilityIdentifier("deleteSelectedButton")
+                        .foregroundStyle(.red)
                     }
-                    .accessibilityIdentifier("deleteSelectedButton")
-                    .foregroundStyle(.red)
                 }
             }
         }
