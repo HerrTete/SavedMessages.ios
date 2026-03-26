@@ -6,6 +6,10 @@ class StorageService: ObservableObject {
 
     @Published var items: [DataItem] = []
 
+    private var deletedIDs: Set<String> = []
+    private var isSyncing = false
+    private var metadataQuery: NSMetadataQuery?
+
     private var iCloudURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: StorageConstants.iCloudContainerID)?
             .appendingPathComponent("Documents")
@@ -13,11 +17,16 @@ class StorageService: ObservableObject {
 
     init() {
         setupDirectories()
+        loadDeletedIDs()
         loadItems()
         registerForShareExtensionNotifications()
+        startMonitoringiCloudChanges()
+        syncFromiCloud()
     }
 
     deinit {
+        metadataQuery?.stop()
+        NotificationCenter.default.removeObserver(self)
         let center = CFNotificationCenterGetDarwinNotifyCenter()
         CFNotificationCenterRemoveEveryObserver(center, Unmanaged.passUnretained(self).toOpaque())
     }
@@ -177,7 +186,9 @@ class StorageService: ObservableObject {
 
     func updateItem(_ item: DataItem) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index] = item
+        var updated = item
+        updated.modifiedAt = Date().timeIntervalSince1970
+        items[index] = updated
         saveItems()
     }
 
@@ -190,6 +201,8 @@ class StorageService: ObservableObject {
             try? FileManager.default.removeItem(at: filesURL.appendingPathComponent(fileName))
         }
         items.removeAll { $0.id == item.id }
+        deletedIDs.insert(item.id)
+        saveDeletedIDs()
         saveItems()
     }
 
@@ -201,7 +214,165 @@ class StorageService: ObservableObject {
             }
         }
         items.removeAll { ids.contains($0.id) }
+        deletedIDs.formUnion(ids)
+        saveDeletedIDs()
         saveItems()
+    }
+
+    // MARK: - iCloud Change Monitoring
+
+    private func startMonitoringiCloudChanges() {
+        let query = NSMetadataQuery()
+        query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
+        query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemFSNameKey, StorageConstants.itemsFileName)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(metadataQueryDidUpdate),
+            name: .NSMetadataQueryDidUpdate,
+            object: query
+        )
+
+        query.start()
+        metadataQuery = query
+    }
+
+    @objc private func metadataQueryDidUpdate() {
+        syncFromiCloud()
+    }
+
+    // MARK: - Deleted IDs Tracking
+
+    private func loadDeletedIDs() {
+        guard let url = StorageConstants.deletedIDsFileURL,
+              let data = try? Data(contentsOf: url),
+              let ids = try? JSONDecoder().decode(Set<String>.self, from: data) else { return }
+        deletedIDs = ids
+    }
+
+    private func saveDeletedIDs() {
+        guard let url = StorageConstants.deletedIDsFileURL,
+              let data = try? JSONEncoder().encode(deletedIDs) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
+
+    // MARK: - Bidirectional Sync
+
+    func syncFromiCloud() {
+        guard !isSyncing else { return }
+        isSyncing = true
+
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self = self else { return }
+
+            guard let iCloudURL = self.iCloudURL else {
+                DispatchQueue.main.async { self.isSyncing = false }
+                return
+            }
+
+            // Load local items directly from file
+            let localItems: [DataItem]
+            if let url = StorageConstants.itemsFileURL,
+               let data = try? Data(contentsOf: url),
+               let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
+                localItems = decoded
+            } else {
+                localItems = []
+            }
+
+            // Load remote items
+            let remoteItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
+            let remoteItems: [DataItem]
+            if let data = try? Data(contentsOf: remoteItemsURL),
+               let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
+                remoteItems = decoded
+            } else {
+                remoteItems = []
+            }
+
+            // Load and merge deleted IDs
+            let localDeletedIDs: Set<String>
+            if let url = StorageConstants.deletedIDsFileURL,
+               let data = try? Data(contentsOf: url),
+               let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
+                localDeletedIDs = ids
+            } else {
+                localDeletedIDs = []
+            }
+
+            let remoteDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+            let remoteDeletedIDs: Set<String>
+            if let data = try? Data(contentsOf: remoteDeletedIDsURL),
+               let ids = try? JSONDecoder().decode(Set<String>.self, from: data) {
+                remoteDeletedIDs = ids
+            } else {
+                remoteDeletedIDs = []
+            }
+
+            let mergedDeletedIDs = localDeletedIDs.union(remoteDeletedIDs)
+
+            // Merge items using LWW-Element-Set strategy
+            let mergedItems = StorageService.mergeItems(local: localItems, remote: remoteItems, deletedIDs: mergedDeletedIDs)
+
+            // Download files for items from iCloud that are missing locally
+            self.downloadMissingFiles(from: iCloudURL, for: mergedItems)
+
+            DispatchQueue.main.async {
+                self.deletedIDs = mergedDeletedIDs
+                self.items = mergedItems
+                self.saveDeletedIDs()
+                self.saveItems()
+
+                // Delay resetting isSyncing to prevent re-entrant sync
+                // triggered by NSMetadataQuery detecting our own upload
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.isSyncing = false
+                }
+            }
+        }
+    }
+
+    /// Merges local and remote items using a Last-Writer-Wins Element-Set strategy.
+    /// Items are matched by ID. For items existing on both sides, the one with
+    /// the newer `effectiveModifiedAt` wins. Deleted IDs are removed from the result.
+    static func mergeItems(local: [DataItem], remote: [DataItem], deletedIDs: Set<String>) -> [DataItem] {
+        var merged: [String: DataItem] = [:]
+
+        for item in local {
+            merged[item.id] = item
+        }
+
+        for item in remote {
+            if let existing = merged[item.id] {
+                if item.effectiveModifiedAt > existing.effectiveModifiedAt {
+                    merged[item.id] = item
+                }
+            } else {
+                merged[item.id] = item
+            }
+        }
+
+        for id in deletedIDs {
+            merged.removeValue(forKey: id)
+        }
+
+        return Array(merged.values).sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private func downloadMissingFiles(from iCloudURL: URL, for items: [DataItem]) {
+        guard let localFilesURL = StorageConstants.filesURL else { return }
+        let iCloudFilesURL = iCloudURL.appendingPathComponent(StorageConstants.filesDirectoryName)
+
+        let neededFiles = Set(items.compactMap { $0.fileName })
+
+        for fileName in neededFiles {
+            let localFile = localFilesURL.appendingPathComponent(fileName)
+            let remoteFile = iCloudFilesURL.appendingPathComponent(fileName)
+            if !FileManager.default.fileExists(atPath: localFile.path) &&
+               FileManager.default.fileExists(atPath: remoteFile.path) {
+                try? FileManager.default.copyItem(at: remoteFile, to: localFile)
+            }
+        }
     }
 
     private func syncToiCloud() {
@@ -212,6 +383,13 @@ class StorageService: ObservableObject {
                 let iCloudItemsURL = iCloudURL.appendingPathComponent(StorageConstants.itemsFileName)
                 try? FileManager.default.removeItem(at: iCloudItemsURL)
                 try? FileManager.default.copyItem(at: localItemsURL, to: iCloudItemsURL)
+            }
+            // Upload deleted IDs
+            if let localDeletedIDsURL = StorageConstants.deletedIDsFileURL,
+               FileManager.default.fileExists(atPath: localDeletedIDsURL.path) {
+                let iCloudDeletedIDsURL = iCloudURL.appendingPathComponent(StorageConstants.deletedIDsFileName)
+                try? FileManager.default.removeItem(at: iCloudDeletedIDsURL)
+                try? FileManager.default.copyItem(at: localDeletedIDsURL, to: iCloudDeletedIDsURL)
             }
             if let localFilesURL = StorageConstants.filesURL {
                 let iCloudFilesURL = iCloudURL.appendingPathComponent(StorageConstants.filesDirectoryName)

@@ -30,7 +30,10 @@ iOS + iPad App for SavedMessages — Version 1.1
   - Automatische Standorterfassung auch in der Share Extension
 
 ### Synchronisation
-- **iCloud-Sync**: Automatische One-Way-Synchronisation (lokal → iCloud)
+- **iCloud-Sync**: Automatische bidirektionale Synchronisation (lokal ↔ iCloud) zwischen allen Geräten eines Accounts
+- **Konfliktfreier Merge**: Last-Writer-Wins Element-Set (LWW-Element-Set) Strategie für automatische Konfliktauflösung
+- **Echtzeit-Erkennung**: NSMetadataQuery erkennt iCloud-Änderungen anderer Geräte automatisch
+- **Tombstone-basierte Löschung**: Gelöschte Einträge werden über alle Geräte hinweg synchronisiert
 - **Cross-Process-Kommunikation**: Echtzeit-Benachrichtigung zwischen Share Extension und Haupt-App via Darwin Notifications
 
 ### Benutzeroberfläche
@@ -52,6 +55,7 @@ SavedMessages speichert alle Daten **dateibasiert** (JSON + Dateisystem). Es wir
 ```
 App Group Container (group.com.HerrTete.SavedMessages)
 ├── items.json                    ← JSON-Array aller DataItem-Einträge (Metadaten)
+├── deletedIDs.json               ← Set gelöschter IDs (Tombstones für Sync)
 └── Files/
     ├── {uuid}.jpg                ← Bilder
     ├── {uuid}.png
@@ -61,8 +65,9 @@ App Group Container (group.com.HerrTete.SavedMessages)
 
 iCloud Container (iCloud.com.HerrTete.SavedMessages)
 └── Documents/
-    ├── items.json                ← Kopie der lokalen items.json (One-Way-Sync)
-    └── Files/                    ← Kopie der lokalen Dateien
+    ├── items.json                ← Bidirektionaler Sync mit lokaler items.json
+    ├── deletedIDs.json           ← Sync der Tombstones
+    └── Files/                    ← Bidirektionaler Sync der Dateien
         └── ...
 ```
 
@@ -81,6 +86,7 @@ Jeder gespeicherte Eintrag wird als `DataItem`-Struct in der Datei `items.json` 
 | `fileName`    | `String?`        | Dateiname im `Files/`-Ordner (UUID + Erweiterung)           |
 | `mimeType`    | `String?`        | MIME-Typ der Datei (z. B. `image/jpeg`)                     |
 | `createdAt`   | `TimeInterval`   | Erstellungszeitpunkt (Sekunden seit 1970)                   |
+| `modifiedAt`  | `TimeInterval?`  | Zeitpunkt der letzten Änderung (optional, fällt auf `createdAt` zurück) |
 | `sourceApp`   | `String?`        | Quell-App (bei Inhalten über die Share Extension, optional, kann `nil` sein) |
 | `location`    | `String?`        | Geocodierter Standort beim Speichern (z. B. „Berlin, Deutschland") |
 
@@ -113,12 +119,25 @@ Dateiname-Schema: `{UUID}.{Erweiterung}` (z. B. `A1B2C3D4-E5F6-7890-ABCD-EF12345
 
 ### iCloud-Synchronisation
 
-Die App führt eine **One-Way-Synchronisation** (lokal → iCloud) durch:
+Die App führt eine **bidirektionale Synchronisation** (lokal ↔ iCloud) durch:
+
+**Upload (lokal → iCloud):**
 - Nach jedem Speichervorgang wird `items.json` in den iCloud-Documents-Container kopiert
 - Neue Dateien im `Files/`-Ordner werden ebenfalls in den iCloud-Container kopiert
-- Dateien werden dabei **nur hochgeladen, wenn sie im iCloud-Ziel noch nicht existieren** (keine Aktualisierung/Überschreibung bestehender Dateien)
-- In iCloud bereits vorhandene Dateien werden **nicht automatisch gelöscht**, auch wenn sie lokal entfernt wurden (kein vollständiges Spiegeln des lokalen Zustands)
-- Es gibt **keine Konflikterkennung** und keinen Rück-Sync von iCloud zum lokalen Speicher
+- Die Datei `deletedIDs.json` (Tombstones) wird ebenfalls hochgeladen
+
+**Download (iCloud → lokal):**
+- Beim App-Start, beim Aktivieren der App und bei erkannten iCloud-Änderungen wird `syncFromiCloud()` ausgelöst
+- Neue Einträge von anderen Geräten werden automatisch in die lokale `items.json` gemergt
+- Fehlende Dateien werden aus dem iCloud-Container heruntergeladen
+- `NSMetadataQuery` überwacht Änderungen an `items.json` im iCloud-Container in Echtzeit
+
+**Konfliktfreier Merge (LWW-Element-Set):**
+- Einträge werden anhand ihrer eindeutigen `id` zusammengeführt (Union aller IDs)
+- Bei Konflikten (gleiche `id` auf beiden Seiten) gewinnt der Eintrag mit dem neueren `effectiveModifiedAt`-Zeitstempel (Last-Writer-Wins)
+- `effectiveModifiedAt` fällt auf `createdAt` zurück, wenn `modifiedAt` nicht gesetzt ist (Abwärtskompatibilität)
+- Gelöschte Einträge werden über `deletedIDs.json` (Tombstones) synchronisiert — Löschungen beider Seiten werden vereinigt
+- Das Ergebnis ist ein deterministischer, konfliktfreier Zustand auf allen Geräten
 
 ### Share Extension
 
@@ -154,6 +173,8 @@ SavedMessages/                      ← Haupt-App
 ShareExtension/                     ← Share Extension
 ├── ShareViewController.swift       ← Verarbeitung geteilter Inhalte
 └── ShareTagPickerView.swift        ← Tag-Auswahl in der Share Extension
+SavedMessagesTests/                 ← Unit-Tests
+└── SyncMergeTests.swift            ← Tests für die Merge-Logik des bidirektionalen Syncs
 SavedMessagesUITests/               ← UI-Tests
 └── SavedMessagesUITests.swift      ← Umfassende UI-Tests für alle Features
 README.md

@@ -32,6 +32,7 @@
 		FEA97F23E56A415AA64164A5 /* DataItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279CD837FE7C49C4A6CC9C29 /* DataItem.swift */; };
 		FF6A7B8C9D0E1F2A3B4C5D6E /* ItemTypeHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* ItemTypeHelpers.swift */; };
 		11AA22BB33CC44DD55EE66FF /* ShareTagPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BB33CC44DD55EE66FF77AA /* ShareTagPickerView.swift */; };
+		B2C3D4E5F60718293A4B5C6D /* SyncMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* SyncMergeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,6 +44,13 @@
 			remoteInfo = ShareExtension;
 		};
 		CCDD3344556677889900AABB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CCB3F50EF82C49E78206F4F1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1E7B78848BB548158AD1F3F6;
+			remoteInfo = SavedMessages;
+		};
+		4B5C6D7E8F9A0B1C2D3E4F50 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CCB3F50EF82C49E78206F4F1 /* Project object */;
 			proxyType = 1;
@@ -93,6 +101,8 @@
 		FA50B3647E714E6BAA92CFF9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AB22CC33DD44EE55FF667788 /* ZoomableImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageView.swift; sourceTree = "<group>"; };
 		22BB33CC44DD55EE66FF77AA /* ShareTagPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareTagPickerView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* SyncMergeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncMergeTests.swift; sourceTree = "<group>"; };
+		E5F60718293A4B5C6D7E8F9A /* SavedMessagesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SavedMessagesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +121,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		FFAA1122334455667788BBCC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		293A4B5C6D7E8F9A0B1C2D3E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -151,6 +168,7 @@
 				AB8C9D0E1F2A3B4C5D6E7F8A /* Shared */,
 				12899E8C74024BEE8A0D9313 /* SavedMessages */,
 				3389731AB0494BE78F6C677C /* ShareExtension */,
+				F60718293A4B5C6D7E8F9A0B /* SavedMessagesTests */,
 				AABB0011223344556677EEFF /* SavedMessagesUITests */,
 				69A50CAF6D594B92A89AB55F /* Products */,
 			);
@@ -185,9 +203,18 @@
 			children = (
 				300352E8836048DD868F5AA5 /* SavedMessages.app */,
 				39B24CD7FDF64502860D51EA /* ShareExtension.appex */,
+				E5F60718293A4B5C6D7E8F9A /* SavedMessagesTests.xctest */,
 				EEFF0011223344556677AABB /* SavedMessagesUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		F60718293A4B5C6D7E8F9A0B /* SavedMessagesTests */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60718293A4B5C /* SyncMergeTests.swift */,
+			);
+			path = SavedMessagesTests;
 			sourceTree = "<group>";
 		};
 		AABB0011223344556677EEFF /* SavedMessagesUITests */ = {
@@ -248,6 +275,24 @@
 			productReference = 39B24CD7FDF64502860D51EA /* ShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		0718293A4B5C6D7E8F9A0B1C /* SavedMessagesTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8F9A0B1C2D3E4F5061728394 /* Build configuration list for PBXNativeTarget "SavedMessagesTests" */;
+			buildPhases = (
+				18293A4B5C6D7E8F9A0B1C2D /* Sources */,
+				293A4B5C6D7E8F9A0B1C2D3E /* Frameworks */,
+				3A4B5C6D7E8F9A0B1C2D3E4F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5C6D7E8F9A0B1C2D3E4F5061 /* PBXTargetDependency */,
+			);
+			name = SavedMessagesTests;
+			productName = SavedMessagesTests;
+			productReference = E5F60718293A4B5C6D7E8F9A /* SavedMessagesTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-testing";
+		};
 		FFBB2233445566778899AABB /* SavedMessagesUITests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1122334455667788AABBCCDD /* Build configuration list for PBXNativeTarget "SavedMessagesUITests" */;
@@ -282,6 +327,10 @@
 					CDE532592CD649A2B71994CD = {
 						CreatedOnToolsVersion = 15.0;
 					};
+					0718293A4B5C6D7E8F9A0B1C = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 1E7B78848BB548158AD1F3F6;
+					};
 					FFBB2233445566778899AABB = {
 						CreatedOnToolsVersion = 15.0;
 						TestTargetID = 1E7B78848BB548158AD1F3F6;
@@ -303,6 +352,7 @@
 			targets = (
 				1E7B78848BB548158AD1F3F6 /* SavedMessages */,
 				CDE532592CD649A2B71994CD /* ShareExtension */,
+				0718293A4B5C6D7E8F9A0B1C /* SavedMessagesTests */,
 				FFBB2233445566778899AABB /* SavedMessagesUITests */,
 			);
 		};
@@ -310,6 +360,13 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		3344556677889900AABBCCDD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3A4B5C6D7E8F9A0B1C2D3E4F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -339,6 +396,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				AABB1122334455667788CCDD /* SavedMessagesUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		18293A4B5C6D7E8F9A0B1C2D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2C3D4E5F60718293A4B5C6D /* SyncMergeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,6 +455,11 @@
 			isa = PBXTargetDependency;
 			target = 1E7B78848BB548158AD1F3F6 /* SavedMessages */;
 			targetProxy = CCDD3344556677889900AABB /* PBXContainerItemProxy */;
+		};
+		5C6D7E8F9A0B1C2D3E4F5061 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1E7B78848BB548158AD1F3F6 /* SavedMessages */;
+			targetProxy = 4B5C6D7E8F9A0B1C2D3E4F50 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -630,6 +700,42 @@
 			};
 			name = Debug;
 		};
+		6D7E8F9A0B1C2D3E4F506172 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SavedMessages.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SavedMessages";
+			};
+			name = Debug;
+		};
+		7E8F9A0B1C2D3E4F50617283 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.HerrTete.SavedMessages.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SavedMessages.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SavedMessages";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -647,6 +753,15 @@
 			buildConfigurations = (
 				4455667788990011AABBCCDD /* Debug */,
 				5566778899001122AABBCCDD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8F9A0B1C2D3E4F5061728394 /* Build configuration list for PBXNativeTarget "SavedMessagesTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6D7E8F9A0B1C2D3E4F506172 /* Debug */,
+				7E8F9A0B1C2D3E4F50617283 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -71,6 +71,7 @@ struct ContentView: View {
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 storage.loadItems()
+                storage.syncFromiCloud()
             }
         }
     }
