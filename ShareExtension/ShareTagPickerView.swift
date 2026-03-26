@@ -68,7 +68,7 @@ struct ShareTagPickerView: View {
                 Spacer()
                 if selectedTags.contains(tag) {
                     Image(systemName: "checkmark")
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
         }
