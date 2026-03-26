@@ -6,8 +6,6 @@ struct ItemListView: View {
     var filterTag: String? = nil
     @State private var selectedItem: DataItem?
     @State private var tagItem: DataItem?
-    @State private var showingShareSheet = false
-    @State private var shareItems: [Any] = []
     @State private var isSelecting = false
     @State private var selectedIDs: Set<String> = []
 
@@ -119,9 +117,6 @@ struct ItemListView: View {
             QuickTagView(item: item)
                 .environmentObject(storage)
         }
-        .sheet(isPresented: $showingShareSheet) {
-            ShareSheet(items: shareItems)
-        }
         .overlay {
             if displayedItems.isEmpty {
                 ContentUnavailableView(
@@ -149,8 +144,7 @@ struct ItemListView: View {
             items.append(url)
         }
         guard !items.isEmpty else { return }
-        shareItems = items
-        showingShareSheet = true
+        SharePresenter.present(items: items)
     }
 }
 

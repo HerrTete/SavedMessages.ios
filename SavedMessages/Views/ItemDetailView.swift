@@ -6,8 +6,6 @@ struct ItemDetailView: View {
     let item: DataItem
     @EnvironmentObject var storage: StorageService
     @Environment(\.dismiss) var dismiss
-    @State private var showingShareSheet = false
-    @State private var shareItems: [Any] = []
     @State private var showingQuickLook = false
     @State private var quickLookURL: URL?
     @State private var showingEdit = false
@@ -71,9 +69,6 @@ struct ItemDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingShareSheet) {
-            ShareSheet(items: shareItems)
-        }
         .sheet(isPresented: $showingQuickLook) {
             if let url = quickLookURL {
                 QuickLookView(url: url)
@@ -92,8 +87,7 @@ struct ItemDetailView: View {
         } else if let url = storage.fileURL(for: currentItem) {
             items.append(url)
         }
-        shareItems = items
-        showingShareSheet = true
+        SharePresenter.present(items: items)
     }
 }
 
@@ -468,14 +462,24 @@ struct FlowLayout: Layout {
     }
 }
 
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+enum SharePresenter {
+    static func present(items: [Any]) {
+        guard !items.isEmpty,
+              let windowScene = UIApplication.shared.connectedScenes
+                  .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+              let rootVC = windowScene.keyWindow?.rootViewController else { return }
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = topVC.view
+            popover.sourceRect = CGRect(x: topVC.view.bounds.midX, y: topVC.view.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        topVC.present(activityVC, animated: true)
     }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct QuickLookView: UIViewControllerRepresentable {
