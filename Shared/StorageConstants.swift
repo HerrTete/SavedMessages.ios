@@ -20,4 +20,9 @@ enum StorageConstants {
     }
 
     static let itemsChangedNotification = "com.HerrTete.SavedMessages.itemsChanged"
+    static let deletedIDsFileName = "deletedIDs.json"
+
+    static var deletedIDsFileURL: URL? {
+        appGroupURL?.appendingPathComponent(deletedIDsFileName)
+    }
 }
