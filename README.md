@@ -1,6 +1,45 @@
 # SavedMessages
 
-iOS + iPad App for SavedMessages
+iOS + iPad App for SavedMessages — Version 1.1
+
+## Features (Version 1.1)
+
+### Inhalte speichern
+- **Text & URLs**: Freitext oder URLs hinzufügen — URLs werden automatisch erkannt und mit dem Tag „URL" versehen
+- **Fotos & Videos**: Aus der Fotobibliothek auswählen oder direkt mit der Kamera aufnehmen (bis zu 10 gleichzeitig)
+- **Audio-Aufnahmen**: Sprachmemos direkt in der App aufnehmen mit Echtzeit-Timer-Anzeige
+- **Dateien**: Beliebige Dateien über die Share Extension empfangen (PDF, Dokumente etc.)
+
+### Organisieren
+- **Tags**: Automatische Tags (Text, URL, Foto, Video, Audio, Datei) und benutzerdefinierte Tags
+- **Quick-Tag-Verwaltung**: Tags direkt über das Kontextmenü oder Swipe-Geste verwalten
+- **Tag-Übersicht**: Alle Tags mit Anzahl in der Tags-Ansicht, Tap zum Filtern
+- **Umbenennen**: Benutzerdefinierte Namen für jeden Eintrag vergeben
+- **Mehrfachauswahl**: Einträge im Auswahlmodus selektieren und in Bulk löschen
+
+### Standort (Neu in 1.1)
+- **Automatische Standorterfassung**: Beim Speichern von Einträgen wird der aktuelle Standort automatisch erfasst (sofern Berechtigung erteilt)
+- **Geocodierte Adresse**: Der Standort wird als lesbare Adresse (Stadt, Land) angezeigt
+- **Anzeige in der Liste**: Einträge mit Standort zeigen ein Kartennadel-Symbol mit der Adresse in der Item-Liste
+
+### Teilen
+- **Share Sheet**: Einträge über den Detail-Ansicht-Share-Button oder das Kontextmenü teilen
+- **Share Extension**: Inhalte aus jeder App direkt in SavedMessages speichern
+  - Erkennung der Quell-App (Safari, Mail, Chrome, Instagram, Twitter u.v.m.)
+  - Tag-Auswahl beim Speichern über die Share Extension
+  - Automatische Standorterfassung auch in der Share Extension
+
+### Synchronisation
+- **iCloud-Sync**: Automatische One-Way-Synchronisation (lokal → iCloud)
+- **Cross-Process-Kommunikation**: Echtzeit-Benachrichtigung zwischen Share Extension und Haupt-App via Darwin Notifications
+
+### Benutzeroberfläche
+- **Tab-Navigation**: Items, Settings, Tags
+- **Detail-Ansicht**: Vollständige Anzeige aller Inhaltstypen mit Done-, Edit- und Share-Buttons
+- **Kontextmenü**: Teilen, Tags verwalten, Löschen per Long-Press
+- **Swipe-Aktionen**: Rechts-Swipe für Tags, Links-Swipe zum Löschen
+- **Leerer Zustand**: Informative Anzeige wenn keine Einträge vorhanden
+- **Settings**: App-Version und Build-Nummer anzeigen
 
 ## Daten-Architektur
 
@@ -43,6 +82,7 @@ Jeder gespeicherte Eintrag wird als `DataItem`-Struct in der Datei `items.json` 
 | `mimeType`    | `String?`        | MIME-Typ der Datei (z. B. `image/jpeg`)                     |
 | `createdAt`   | `TimeInterval`   | Erstellungszeitpunkt (Sekunden seit 1970)                   |
 | `sourceApp`   | `String?`        | Quell-App (bei Inhalten über die Share Extension, optional, kann `nil` sein) |
+| `location`    | `String?`        | Geocodierter Standort beim Speichern (z. B. „Berlin, Deutschland") |
 
 ### Tags
 
@@ -87,6 +127,7 @@ Die Share Extension nutzt denselben App-Group-Container (`group.com.HerrTete.Sav
 - `Shared/DataItem.swift` — Datenmodell
 - `Shared/StorageConstants.swift` — App-Group-ID, iCloud-Container-ID, Datei-/Ordnernamen und URL-Helfer
 - `Shared/ItemTypeHelpers.swift` — Typbestimmung (MIME-Type, Dateiendung), Standard-Tags, URL-Erkennung
+- `Shared/LocationService.swift` — Standortdienst (CLLocationManager + CLGeocoder, Singleton)
 
 ## Projekt-Struktur
 
@@ -94,21 +135,26 @@ Die Share Extension nutzt denselben App-Group-Container (`group.com.HerrTete.Sav
 Shared/                             ← Gemeinsamer Code (App + Extension)
 ├── DataItem.swift                  ← Datenmodell
 ├── StorageConstants.swift          ← Zentrale Konstanten & Pfade
+├── LocationService.swift           ← Standortdienst (CLLocationManager + Geocoding)
 └── ItemTypeHelpers.swift           ← Typ-Erkennung & Standard-Tags
 SavedMessages/                      ← Haupt-App
 ├── SavedMessagesApp.swift          ← App-Einstiegspunkt
-├── ContentView.swift               ← Tab-Ansicht (Items + Tags)
+├── ContentView.swift               ← Tab-Ansicht (Items, Settings, Tags)
 ├── Services/
 │   └── StorageService.swift        ← Persistence-Layer (laden, speichern, iCloud-Sync)
 └── Views/
-    ├── ItemListView.swift          ← Item-Liste mit Filter & Thumbnails
-    ├── ItemDetailView.swift        ← Detail-, Bearbeitungs- & Quick-Tag-Ansichten
+    ├── ItemListView.swift          ← Item-Liste mit Filter, Thumbnails & Mehrfachauswahl
+    ├── ItemDetailView.swift        ← Detail-, Bearbeitungs-, Quick-Tag- & Share-Ansichten
+    ├── SettingsView.swift          ← App-Version & Build-Nummer
     ├── TagsView.swift              ← Tag-Übersicht mit Zählern
-    ├── AddTextView.swift           ← Text/URL hinzufügen
-    ├── AddAudioView.swift          ← Audio aufnehmen
-    ├── AddPhotoVideoView.swift     ← Foto/Video hinzufügen
-    └── CameraPickerView.swift      ← Kamera-Auswahl
+    ├── AddTextView.swift           ← Text/URL hinzufügen (mit Standorterfassung)
+    ├── AddAudioView.swift          ← Audio aufnehmen (mit Standorterfassung)
+    ├── AddPhotoVideoView.swift     ← Foto/Video hinzufügen (mit Standorterfassung)
+    └── CameraPickerView.swift      ← Kamera-Auswahl (UIImagePickerController)
 ShareExtension/                     ← Share Extension
-└── ShareViewController.swift       ← Verarbeitung geteilter Inhalte
+├── ShareViewController.swift       ← Verarbeitung geteilter Inhalte
+└── ShareTagPickerView.swift        ← Tag-Auswahl in der Share Extension
+SavedMessagesUITests/               ← UI-Tests
+└── SavedMessagesUITests.swift      ← Umfassende UI-Tests für alle Features
 README.md
 ```
