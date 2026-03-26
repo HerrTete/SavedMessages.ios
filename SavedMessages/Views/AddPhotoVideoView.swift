@@ -117,6 +117,9 @@ struct AddPhotoVideoView: View {
                 }
             }
         }
+        .onAppear {
+            LocationService.shared.start()
+        }
     }
 
     @MainActor

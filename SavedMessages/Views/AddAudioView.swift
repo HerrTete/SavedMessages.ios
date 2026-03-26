@@ -83,6 +83,9 @@ struct AddAudioView: View {
                 }
             }
         }
+        .onAppear {
+            LocationService.shared.start()
+        }
     }
 
     private func startRecording() {

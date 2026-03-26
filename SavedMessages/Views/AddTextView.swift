@@ -29,5 +29,8 @@ struct AddTextView: View {
                     }
                 }
         }
+        .onAppear {
+            LocationService.shared.start()
+        }
     }
 }
