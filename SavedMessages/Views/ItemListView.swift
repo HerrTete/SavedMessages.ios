@@ -98,6 +98,11 @@ struct ItemListView: View {
             ToolbarItem(placement: .bottomBar) {
                 if isSelecting && !selectedIDs.isEmpty {
                     HStack {
+                        Button("Cancel") {
+                            isSelecting = false
+                            selectedIDs = []
+                        }
+                        .accessibilityIdentifier("cancelSelectButton")
                         Spacer()
                         Button(role: .destructive) {
                             storage.deleteItems(ids: selectedIDs)
