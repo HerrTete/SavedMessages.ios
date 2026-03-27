@@ -36,6 +36,16 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         super.viewDidLoad()
         setupHUD()
         setupLocation()
+    }
+
+    private var didStartProcessing = false
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Start processing only once. viewDidAppear also fires when the
+        // tag-picker sheet is dismissed, so the guard prevents a second run.
+        guard !didStartProcessing else { return }
+        didStartProcessing = true
         processSharedItems()
     }
 
@@ -455,14 +465,13 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         var writeSuccess = false
 
         coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordError) { coordinatedURL in
-            if fileManager.fileExists(atPath: coordinatedURL.path) {
-                do {
-                    let data = try Data(contentsOf: coordinatedURL)
-                    existing = try JSONDecoder().decode([DataItem].self, from: data)
-                } catch {
-                    return
-                }
+            if fileManager.fileExists(atPath: coordinatedURL.path),
+               let data = try? Data(contentsOf: coordinatedURL),
+               let decoded = try? JSONDecoder().decode([DataItem].self, from: data) {
+                existing = decoded
             }
+            // If the file is missing or unreadable the write still proceeds
+            // with an empty baseline so the new items are never lost.
 
             self.itemsLock.lock()
             let newItems = self.pendingItems.map { item -> DataItem in
