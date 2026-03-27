@@ -280,32 +280,20 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         // Check specific media types first to avoid the greedy plainText match.
         // Many providers (e.g. images shared from Safari) conform to both
         // public.plain-text and public.image; checking text first would lose the file.
-        let mediaTypes = [UTType.image.identifier, UTType.movie.identifier,
-                          UTType.audio.identifier]
-        for typeID in mediaTypes {
-            if provider.hasItemConformingToTypeIdentifier(typeID) {
-                provider.loadItem(forTypeIdentifier: typeID) { item, _ in
-                    if let url = item as? URL {
+        let mediaTypes: [UTType] = [.image, .movie, .audio]
+        for utType in mediaTypes {
+            if provider.hasItemConformingToTypeIdentifier(utType.identifier) {
+                // Use loadFileRepresentation instead of loadItem so the system
+                // creates a readable temporary copy. loadItem may return URLs
+                // that point into the source app's sandbox (e.g. Photos),
+                // causing FileManager.copyItem to fail silently.
+                _ = provider.loadFileRepresentation(for: utType) { url, _, error in
+                    if let url = url {
                         if let dataItem = self.copyFileToContainer(url: url) {
                             self.addPendingItem(dataItem)
                         }
-                    } else if let data = item as? Data {
-                        let name = provider.suggestedName ?? "file"
-                        let mimeType = UTType(typeID)?.preferredMIMEType ?? "application/octet-stream"
-                        if let dataItem = self.writeDataToContainer(data: data, name: name, mimeType: mimeType) {
-                            self.addPendingItem(dataItem)
-                        }
-                    } else if let image = item as? UIImage {
-                        let name = provider.suggestedName ?? "image"
-                        if let jpegData = image.jpegData(compressionQuality: 0.9) {
-                            if let dataItem = self.writeDataToContainer(data: jpegData, name: name + ".jpg", mimeType: "image/jpeg") {
-                                self.addPendingItem(dataItem)
-                            }
-                        } else if let pngData = image.pngData() {
-                            if let dataItem = self.writeDataToContainer(data: pngData, name: name + ".png", mimeType: "image/png") {
-                                self.addPendingItem(dataItem)
-                            }
-                        }
+                    } else if let error = error {
+                        print("ShareExtension: failed to load \(utType.identifier) representation – \(error.localizedDescription)")
                     }
                     completion()
                 }
@@ -315,10 +303,13 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
         // File URLs (e.g. PDFs, documents shared from Files app)
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
-                if let url = item as? URL,
-                   let dataItem = self.copyFileToContainer(url: url) {
-                    self.addPendingItem(dataItem)
+            _ = provider.loadFileRepresentation(for: .fileURL) { url, _, error in
+                if let url = url {
+                    if let dataItem = self.copyFileToContainer(url: url) {
+                        self.addPendingItem(dataItem)
+                    }
+                } else if let error = error {
+                    print("ShareExtension: failed to load fileURL representation – \(error.localizedDescription)")
                 }
                 completion()
             }
@@ -364,16 +355,13 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
         // Generic data / files that didn't match any specific type above
         if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
-            provider.loadItem(forTypeIdentifier: UTType.data.identifier) { item, _ in
-                if let url = item as? URL {
+            _ = provider.loadFileRepresentation(for: .data) { url, _, error in
+                if let url = url {
                     if let dataItem = self.copyFileToContainer(url: url) {
                         self.addPendingItem(dataItem)
                     }
-                } else if let data = item as? Data {
-                    let name = provider.suggestedName ?? "file"
-                    if let dataItem = self.writeDataToContainer(data: data, name: name, mimeType: "application/octet-stream") {
-                        self.addPendingItem(dataItem)
-                    }
+                } else if let error = error {
+                    print("ShareExtension: failed to load data representation – \(error.localizedDescription)")
                 }
                 completion()
             }
