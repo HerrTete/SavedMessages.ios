@@ -9,6 +9,10 @@ struct ItemListView: View {
     @State private var isSelecting = false
     @State private var selectedIDs: Set<String> = []
 
+    private var showingSelectionBar: Bool {
+        isSelecting && !selectedIDs.isEmpty
+    }
+
     private var displayedItems: [DataItem] {
         if let tag = filterTag {
             return storage.items.filter { $0.tags.contains(tag) }
@@ -95,23 +99,37 @@ struct ItemListView: View {
                     .accessibilityIdentifier("selectButton")
                 }
             }
-            ToolbarItem(placement: .bottomBar) {
-                if isSelecting && !selectedIDs.isEmpty {
-                    HStack {
-                        Spacer()
-                        Button(role: .destructive) {
-                            storage.deleteItems(ids: selectedIDs)
-                            isSelecting = false
-                            selectedIDs = []
-                        } label: {
-                            Label("Delete (\(selectedIDs.count))", systemImage: "trash")
-                        }
-                        .accessibilityIdentifier("deleteSelectedButton")
-                        .foregroundStyle(.red)
+        }
+        .safeAreaInset(edge: .bottom) {
+            if showingSelectionBar {
+                HStack {
+                    HStack(spacing: 20) {
+                        tabBarIcon("list.bullet", label: "Items")
+                        tabBarIcon("gearshape", label: "Settings")
+                        tabBarIcon("number", label: "Tags")
                     }
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                    Spacer()
+                    Button(role: .destructive) {
+                        storage.deleteItems(ids: selectedIDs)
+                        isSelecting = false
+                        selectedIDs = []
+                    } label: {
+                        Label("Delete (\(selectedIDs.count))", systemImage: "trash")
+                    }
+                    .accessibilityIdentifier("deleteSelectedButton")
+                    .foregroundStyle(.red)
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(.bar)
+                .overlay(alignment: .top) { Divider() }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Selection bar: \(selectedIDs.count) item(s) selected")
             }
         }
+        .toolbar(showingSelectionBar ? .hidden : .visible, for: .tabBar)
         .sheet(item: $selectedItem) { item in
             ItemDetailView(item: item)
                 .environmentObject(storage)
@@ -148,6 +166,14 @@ struct ItemListView: View {
         }
         guard !items.isEmpty else { return }
         SharePresenter.present(items: items)
+    }
+
+    @ViewBuilder
+    private func tabBarIcon(_ systemImage: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Image(systemName: systemImage).font(.system(size: 20))
+            Text(label).font(.caption2)
+        }
     }
 }
 
