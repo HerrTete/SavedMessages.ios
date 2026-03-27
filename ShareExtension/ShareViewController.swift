@@ -292,6 +292,8 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                         if let dataItem = self.copyFileToContainer(url: url) {
                             self.addPendingItem(dataItem)
                         }
+                    } else if let error = error {
+                        print("ShareExtension: failed to load \(utType.identifier) representation – \(error.localizedDescription)")
                     }
                     completion()
                 }
@@ -306,6 +308,8 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                     if let dataItem = self.copyFileToContainer(url: url) {
                         self.addPendingItem(dataItem)
                     }
+                } else if let error = error {
+                    print("ShareExtension: failed to load fileURL representation – \(error.localizedDescription)")
                 }
                 completion()
             }
@@ -356,6 +360,8 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                     if let dataItem = self.copyFileToContainer(url: url) {
                         self.addPendingItem(dataItem)
                     }
+                } else if let error = error {
+                    print("ShareExtension: failed to load data representation – \(error.localizedDescription)")
                 }
                 completion()
             }
