@@ -22,7 +22,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     private let geocoder = CLGeocoder()
     private var currentLocationString: String?
     private let locationGroup = DispatchGroup()
-    private var locationGroupLeft = false
+    private var didLeaveLocationGroup = false
     private let locationLock = NSLock()
 
     // MARK: - HUD UI
@@ -143,8 +143,8 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     private func leaveLocationGroup() {
         locationLock.lock()
         defer { locationLock.unlock() }
-        guard !locationGroupLeft else { return }
-        locationGroupLeft = true
+        guard !didLeaveLocationGroup else { return }
+        didLeaveLocationGroup = true
         locationGroup.leave()
     }
 
@@ -393,7 +393,11 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     /// `UIImage` objects directly.
     private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
         provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] item, loadError in
-            guard let self else { completion(); return }
+            guard let self else {
+                print("ShareExtension: loadItem fallback – view controller deallocated before completion")
+                completion()
+                return
+            }
             if let url = item as? URL {
                 if let dataItem = self.copyFileToContainer(url: url) {
                     self.addPendingItem(dataItem)
