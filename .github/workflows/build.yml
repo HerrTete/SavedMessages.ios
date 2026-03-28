@@ -20,7 +20,17 @@ jobs:
         run: |
           xcodebuild -project SavedMessages.xcodeproj \
             -scheme SavedMessages \
-            -destination "generic/platform=iOS Simulator" \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Run UI Tests
+        run: |
+          xcodebuild -project SavedMessages.xcodeproj \
+            -scheme SavedMessages \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            -skip-testing:SavedMessagesUITests/ShareExtensionUITests \
+            test
