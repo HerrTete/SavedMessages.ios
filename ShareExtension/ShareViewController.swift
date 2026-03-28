@@ -7,9 +7,14 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
     // MARK: - Pending items (collected from all providers, saved once at the end)
 
-    private var pendingItems: [DataItem] = []
+    // These properties are accessed from nonisolated methods (called by
+    // @Sendable completion handlers that run on arbitrary queues).  They are
+    // protected by `itemsLock` (or, in the case of `sourceAppTag`, written
+    // once on the main thread before any background callback is scheduled),
+    // so the `nonisolated(unsafe)` annotation is safe.
+    nonisolated(unsafe) private var pendingItems: [DataItem] = []
     private let itemsLock = NSLock()
-    private var sourceAppTag: String?
+    nonisolated(unsafe) private var sourceAppTag: String?
 
     // Generic bundle ID segments that do not carry a meaningful app name.
     private static let bundleIDSkipTokens: Set<String> = [
@@ -391,7 +396,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     /// Fallback for when `loadFileRepresentation` fails. Uses the older
     /// `loadItem(forTypeIdentifier:)` which can return URLs, raw `Data`, or
     /// `UIImage` objects directly.
-    private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
+    nonisolated private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
         provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] item, loadError in
             guard let self else {
                 print("ShareExtension: loadItem fallback – view controller deallocated before completion")
@@ -428,7 +433,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
     // MARK: - Item helpers
 
-    private func addPendingItem(_ item: DataItem) {
+    nonisolated private func addPendingItem(_ item: DataItem) {
         var item = item
         if let appTag = sourceAppTag, !item.tags.contains(appTag) {
             item.tags.append(appTag)
@@ -441,14 +446,14 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         itemsLock.unlock()
     }
 
-    private func makeTextItem(text: String) -> DataItem {
+    nonisolated private func makeTextItem(text: String) -> DataItem {
         let tag = isURLString(text) ? "URL" : DataItemType.text.defaultTag
         return DataItem(type: .text, title: String(text.prefix(50)), tags: [tag], textContent: text)
     }
 
     // MARK: - File operations
 
-    private func copyFileToContainer(url: URL) -> DataItem? {
+    nonisolated private func copyFileToContainer(url: URL) -> DataItem? {
         guard let containerURL = StorageConstants.appGroupURL else {
             print("ShareExtension: appGroupURL is nil – cannot copy file to container")
             return nil
@@ -478,7 +483,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         return DataItem(type: type, title: origName, tags: [type.defaultTag], fileName: uniqueName, mimeType: mimeType)
     }
 
-    private func writeDataToContainer(data: Data, name: String, mimeType: String) -> DataItem? {
+    nonisolated private func writeDataToContainer(data: Data, name: String, mimeType: String) -> DataItem? {
         guard let containerURL = StorageConstants.appGroupURL else { return nil }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
@@ -619,7 +624,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         return nil
     }
 
-    private func mimeTypeForExtension(_ ext: String) -> String {
+    nonisolated private func mimeTypeForExtension(_ ext: String) -> String {
         if let utType = UTType(filenameExtension: ext) {
             return utType.preferredMIMEType ?? "application/octet-stream"
         }
