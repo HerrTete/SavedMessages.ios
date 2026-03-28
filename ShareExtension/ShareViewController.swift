@@ -22,6 +22,8 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     private let geocoder = CLGeocoder()
     private var currentLocationString: String?
     private let locationGroup = DispatchGroup()
+    private var didLeaveLocationGroup = false
+    private let locationLock = NSLock()
 
     // MARK: - HUD UI
 
@@ -136,22 +138,32 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         mgr.requestWhenInUseAuthorization()
     }
 
+    /// Leave the location dispatch group at most once to prevent crashes from
+    /// unbalanced enter/leave pairs (e.g. when the delegate fires multiple times).
+    private func leaveLocationGroup() {
+        locationLock.lock()
+        defer { locationLock.unlock() }
+        guard !didLeaveLocationGroup else { return }
+        didLeaveLocationGroup = true
+        locationGroup.leave()
+    }
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             manager.requestLocation()
         case .denied, .restricted:
-            locationGroup.leave()
+            leaveLocationGroup()
         case .notDetermined:
             break
         @unknown default:
-            locationGroup.leave()
+            leaveLocationGroup()
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else {
-            locationGroup.leave()
+            leaveLocationGroup()
             return
         }
         geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
@@ -165,12 +177,12 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                     self?.currentLocationString = parts.joined(separator: ", ")
                 }
             }
-            self?.locationGroup.leave()
+            self?.leaveLocationGroup()
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        locationGroup.leave()
+        leaveLocationGroup()
     }
 
     // MARK: - Processing
@@ -288,14 +300,17 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                 // that point into the source app's sandbox (e.g. Photos),
                 // causing FileManager.copyItem to fail silently.
                 _ = provider.loadFileRepresentation(for: utType) { url, _, error in
-                    if let url = url {
-                        if let dataItem = self.copyFileToContainer(url: url) {
-                            self.addPendingItem(dataItem)
+                    if let url = url, let dataItem = self.copyFileToContainer(url: url) {
+                        self.addPendingItem(dataItem)
+                        completion()
+                    } else {
+                        // loadFileRepresentation failed – fall back to loadItem which can
+                        // return Data or UIImage representations directly.
+                        if let error = error {
+                            print("ShareExtension: loadFileRepresentation failed for \(utType.identifier) – \(error.localizedDescription), trying loadItem fallback")
                         }
-                    } else if let error = error {
-                        print("ShareExtension: failed to load \(utType.identifier) representation – \(error.localizedDescription)")
+                        self.loadItemFallback(provider: provider, typeIdentifier: utType.identifier, completion: completion)
                     }
-                    completion()
                 }
                 return
             }
@@ -304,14 +319,15 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         // File URLs (e.g. PDFs, documents shared from Files app)
         if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
             _ = provider.loadFileRepresentation(for: .fileURL) { url, _, error in
-                if let url = url {
-                    if let dataItem = self.copyFileToContainer(url: url) {
-                        self.addPendingItem(dataItem)
+                if let url = url, let dataItem = self.copyFileToContainer(url: url) {
+                    self.addPendingItem(dataItem)
+                    completion()
+                } else {
+                    if let error = error {
+                        print("ShareExtension: loadFileRepresentation failed for fileURL – \(error.localizedDescription), trying loadItem fallback")
                     }
-                } else if let error = error {
-                    print("ShareExtension: failed to load fileURL representation – \(error.localizedDescription)")
+                    self.loadItemFallback(provider: provider, typeIdentifier: UTType.fileURL.identifier, completion: completion)
                 }
-                completion()
             }
             return
         }
@@ -356,19 +372,58 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
         // Generic data / files that didn't match any specific type above
         if provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
             _ = provider.loadFileRepresentation(for: .data) { url, _, error in
-                if let url = url {
-                    if let dataItem = self.copyFileToContainer(url: url) {
-                        self.addPendingItem(dataItem)
+                if let url = url, let dataItem = self.copyFileToContainer(url: url) {
+                    self.addPendingItem(dataItem)
+                    completion()
+                } else {
+                    if let error = error {
+                        print("ShareExtension: loadFileRepresentation failed for data – \(error.localizedDescription), trying loadItem fallback")
                     }
-                } else if let error = error {
-                    print("ShareExtension: failed to load data representation – \(error.localizedDescription)")
+                    self.loadItemFallback(provider: provider, typeIdentifier: UTType.data.identifier, completion: completion)
                 }
-                completion()
             }
             return
         }
 
         completion()
+    }
+
+    /// Fallback for when `loadFileRepresentation` fails. Uses the older
+    /// `loadItem(forTypeIdentifier:)` which can return URLs, raw `Data`, or
+    /// `UIImage` objects directly.
+    private func loadItemFallback(provider: NSItemProvider, typeIdentifier: String, completion: @escaping () -> Void) {
+        provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] item, loadError in
+            guard let self else {
+                print("ShareExtension: loadItem fallback – view controller deallocated before completion")
+                completion()
+                return
+            }
+            if let url = item as? URL {
+                if let dataItem = self.copyFileToContainer(url: url) {
+                    self.addPendingItem(dataItem)
+                }
+            } else if let data = item as? Data {
+                let name = provider.suggestedName ?? "file"
+                let mimeType = UTType(typeIdentifier)?.preferredMIMEType ?? "application/octet-stream"
+                if let dataItem = self.writeDataToContainer(data: data, name: name, mimeType: mimeType) {
+                    self.addPendingItem(dataItem)
+                }
+            } else if let image = item as? UIImage {
+                let name = provider.suggestedName ?? "image"
+                if let jpegData = image.jpegData(compressionQuality: 0.9) {
+                    if let dataItem = self.writeDataToContainer(data: jpegData, name: name + ".jpg", mimeType: "image/jpeg") {
+                        self.addPendingItem(dataItem)
+                    }
+                } else if let pngData = image.pngData() {
+                    if let dataItem = self.writeDataToContainer(data: pngData, name: name + ".png", mimeType: "image/png") {
+                        self.addPendingItem(dataItem)
+                    }
+                }
+            } else if let loadError = loadError {
+                print("ShareExtension: loadItem fallback also failed for \(typeIdentifier) – \(loadError.localizedDescription)")
+            }
+            completion()
+        }
     }
 
     // MARK: - Item helpers
@@ -394,7 +449,10 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     // MARK: - File operations
 
     private func copyFileToContainer(url: URL) -> DataItem? {
-        guard let containerURL = StorageConstants.appGroupURL else { return nil }
+        guard let containerURL = StorageConstants.appGroupURL else {
+            print("ShareExtension: appGroupURL is nil – cannot copy file to container")
+            return nil
+        }
         let filesDir = containerURL.appendingPathComponent(StorageConstants.filesDirectoryName)
         try? FileManager.default.createDirectory(at: filesDir, withIntermediateDirectories: true)
 
@@ -411,6 +469,7 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
                 try FileManager.default.copyItem(at: url, to: dest)
             }
         } catch {
+            print("ShareExtension: copyItem failed from \(url.lastPathComponent) to \(uniqueName) – \(error.localizedDescription)")
             return nil
         }
 
@@ -441,7 +500,10 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
     // MARK: - Persistence (single atomic save of all collected items)
 
     private func commitPendingItems() -> Bool {
-        guard let containerURL = StorageConstants.appGroupURL else { return false }
+        guard let containerURL = StorageConstants.appGroupURL else {
+            print("ShareExtension: appGroupURL is nil – cannot commit items")
+            return false
+        }
         let url = containerURL.appendingPathComponent(StorageConstants.itemsFileName)
 
         var existing: [DataItem] = []
@@ -473,13 +535,21 @@ class ShareViewController: UIViewController, CLLocationManagerDelegate {
 
             existing.insert(contentsOf: newItems, at: 0)
 
-            guard let encoded = try? JSONEncoder().encode(existing) else { return }
+            guard let encoded = try? JSONEncoder().encode(existing) else {
+                print("ShareExtension: failed to encode \(existing.count) items")
+                return
+            }
             do {
                 try encoded.write(to: coordinatedURL, options: .atomic)
                 writeSuccess = true
             } catch {
+                print("ShareExtension: failed to write items.json – \(error.localizedDescription)")
                 return
             }
+        }
+
+        if let coordError = coordError {
+            print("ShareExtension: file coordination error – \(coordError.localizedDescription)")
         }
 
         guard coordError == nil, writeSuccess else { return false }
